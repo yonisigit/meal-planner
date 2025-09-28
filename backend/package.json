@@ -4,21 +4,30 @@
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
+    "build": "npx tsc",
     "lint": "eslint . --ext .ts",
-    "start": "npx tsc && node dist/server.js"
+    "start": "npx tsc && node dist/server.js",
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "studio": "drizzle-kit studio"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@libsql/client": "^0.15.15",
+    "dotenv": "^17.2.2",
+    "drizzle-orm": "^0.44.5",
+    "envalid": "^8.1.0",
     "express": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@types/express": "^5.0.3",
     "@types/node": "^24.5.2",
+    "drizzle-kit": "^0.31.5",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "nodemon": "^3.1.10",
