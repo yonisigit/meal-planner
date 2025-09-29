@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
-import env from "../config/validate_env.js"
+import env from "../config/validateEnv.js"
 
 const turso = createClient({
   url: env.TURSO_DATABASE_URL!,

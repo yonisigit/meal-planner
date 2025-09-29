@@ -1,22 +1,21 @@
 import "dotenv/config"; // = dotenv.config()
-import env from "./config/validate_env.js";
+import env from "./config/validateEnv.js";
 import express from "express";
+import cors from "cors";
+import { guestsRouter } from "./routes/guestsRoute.js";
 
-import { notesRouter } from "./api/notes.js";
-import { testDB } from "./db/queries/guest_queries.js";
-
-
-const app =  express();
 
 const port = env.PORT;
 
-await testDB();
+const app =  express();
 
-app.use("/api/notes", notesRouter);
 
-app.get("/", (req, res) => {
-  res.send("Hello world!");
-});
+app.use(express.json());
+app.use(cors())
+
+app.use("/api/guests", guestsRouter);
+
+
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

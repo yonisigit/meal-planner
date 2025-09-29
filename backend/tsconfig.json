@@ -33,10 +33,11 @@
     // "noPropertyAccessFromIndexSignature": true,
 
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "allowJs": true,
     "resolveJsonModule": true,
     "moduleResolution": "nodenext",
+
+    //"allowImportingTsExtensions": false,
     
 
     // Recommended Options
