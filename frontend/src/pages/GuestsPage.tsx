@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/axios';
+import type { AxiosResponse } from 'axios';
 import HomeButton from '../components/HomeButton';
 
 const GuestsPage = () => {
@@ -9,12 +10,12 @@ const GuestsPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/guests/')
-      .then(res => {
+    api.get('/guests/')
+      .then((res: AxiosResponse) => {
         setGuests(res.data);
         setLoading(false);
       })
-      .catch(_ => {
+      .catch(() => {
         setError('Failed to load guests');
         setLoading(false);
       });

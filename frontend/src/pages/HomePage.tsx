@@ -6,7 +6,10 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-6 gap-8 bg-base-200">
-      <div className="grid grid-cols-2 gap-8 w-full max-w-2xl">
+      <div className="mb-2 text-center">
+        <h1 className="font-serif text-4xl font-bold text-brown-dark drop-shadow-sm mb-2">Plan your meal.</h1>
+      </div>
+      <div className="grid grid-cols-2 gap-8 w-full max-w-2xl mt-2">
         <button
           className="w-full h-40 text-2xl font-semibold rounded-lg bg-brown-dark text-white shadow-md"
           onClick={() => navigate('/dishes')}
@@ -22,7 +25,7 @@ const HomePage: React.FC = () => {
           Guests
         </button>
       </div>
-  <div className="flex w-full max-w-2xl justify-center mt-4">
+      <div className="flex w-full max-w-2xl justify-center mt-4">
         <button
           className="w-1/2 h-40 text-2xl font-semibold rounded-lg bg-brown-dark text-white shadow-md"
           onClick={() => navigate('/meals')}

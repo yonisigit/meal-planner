@@ -1,10 +1,8 @@
-import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import DishesPage from './pages/DishesPage';
 import GuestsPage from './pages/GuestsPage';
 import MealsPage from './pages/MealsPage';
-import toast from 'react-hot-toast';
 
 const App = () => {
   return (
