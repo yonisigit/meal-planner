@@ -25,6 +25,7 @@ if (config.nodeEnv === "production") {
   app.use(express.static(distPath));
 
   // serve index.html for any GET request that is not an API call and does not request a file
+  //FIX THIS
   app.use((req, res, next) => {
     if (req.method !== 'GET') return next();
     if (req.path.startsWith('/api')) return next();
