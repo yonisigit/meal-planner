@@ -13,14 +13,14 @@ const __dirname = path.resolve();
 
 app.use(express.json());
 
-if (config.nodeEnv !== "production"){
+if (config.isProd){
   app.use(cors());
 }
 
 app.use("/api/auth", authRouter);
 app.use("/api/guests", guestsRouter);
 
-if (config.nodeEnv === "production") {
+if (config.isProd) {
   const distPath = path.join(__dirname, "../frontend/dist");
   app.use(express.static(distPath));
 
@@ -36,5 +36,5 @@ if (config.nodeEnv === "production") {
 
 
 app.listen(config.port, () => {
-  console.log(`Server running on http://localhost:${config.port}`);
+  console.log(`Server running on PORT:${config.port}`);
 });

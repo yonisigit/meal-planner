@@ -2,11 +2,17 @@ import env from "./validateEnv.js"
 
 type Config = {
   port: number
-  nodeEnv: string
+  isProd: boolean
 };
 
+function checkProd(){
+  if (env.NODE_ENV === "production"){
+    return true;
+  }
+  return false;
+}
 
 export const config: Config = {
   port: env.PORT,
-  nodeEnv: env.NODE_ENV
+  isProd: checkProd()
 }
