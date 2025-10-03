@@ -8,9 +8,7 @@ export default {
   ],
   theme: {
     extend: {
-      colors: {
-        'brown-dark': '#7c5c3e', // slightly darker brown
-      },
+      // kept empty to use daisyUI theme colors (retro)
     },
   },
   plugins: [daisyui],

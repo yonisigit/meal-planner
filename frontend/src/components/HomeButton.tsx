@@ -12,9 +12,9 @@ export default function HomeButton({ className = '', size = 56, ariaLabel = 'Go 
 
   return (
     <button
-      className={`btn btn-circle btn-ghost absolute top-4 right-4 text-brown-dark ${className}`}
+      className={`btn btn-circle btn-ghost absolute top-4 right-4 ${className}`}
       style={style}
-      onClick={() => navigate('/')}
+      onClick={() => navigate('/home')}
       aria-label={ariaLabel}
       title={ariaLabel}
     >
