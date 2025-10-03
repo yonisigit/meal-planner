@@ -3,9 +3,9 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 
-import { guestsRouter } from "./routes/guestsRoute.js";
+import { guestsRouter } from "./api/routes/guestsRoute.js";
 import { config } from "./config/config.js"
-import { authRouter } from "./routes/authRoute.js";
+import { authRouter } from "./api/routes/authRoute.js";
 
 
 const app = express();
@@ -13,7 +13,7 @@ const __dirname = path.resolve();
 
 app.use(express.json());
 
-if (config.isProd){
+if (!config.isProd){
   app.use(cors());
 }
 
