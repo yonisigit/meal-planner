@@ -25,7 +25,7 @@ export const dishesTable = sqliteTable("dishes", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
-  userId: text("user_id").notNull().references(() => usersTable.username, {onDelete: "cascade"}),
+  userId: text("user_id").notNull().references(() => usersTable.id, {onDelete: "cascade"}),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
@@ -34,7 +34,7 @@ export type Dish = typeof dishesTable.$inferInsert;
 
 export const dishesRankTable = sqliteTable("dishes_rank", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
-  userId: text("user_id").notNull().references(() => usersTable.username, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   guestId: text("guest_id").notNull().references(() => guestsTable.id, { onDelete: "cascade" }),
   dishId: text("dish_id").notNull().references(() => dishesTable.id, { onDelete: "cascade" }),
   rank: integer("rank").notNull(),

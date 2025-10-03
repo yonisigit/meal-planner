@@ -6,6 +6,7 @@ import path from "path";
 import { guestsRouter } from "./api/routes/guestsRoute.js";
 import { config } from "./config/config.js"
 import { authRouter } from "./api/routes/authRoute.js";
+import { dishesRouter } from "./api/routes/dishesRoute.js";
 
 
 const app = express();
@@ -19,6 +20,7 @@ if (!config.isProd){
 
 app.use("/api/auth", authRouter);
 app.use("/api/guests", guestsRouter);
+app.use("/api/dishes", dishesRouter);
 
 if (config.isProd) {
   const distPath = path.join(__dirname, "../frontend/dist");
