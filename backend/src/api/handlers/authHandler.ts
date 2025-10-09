@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { createUser, getUserByUsername } from "../../db/queries/userQueries.js";
 
 
-export async function signupCtlr(req: Request, res: Response) {
+export async function signupHandler(req: Request, res: Response) {
   try {
     const {username, password} = req.body;
     if (!username || !password) {
@@ -22,7 +22,7 @@ export async function signupCtlr(req: Request, res: Response) {
 }
 
 
-export async function loginCtlr(req: Request, res: Response){
+export async function loginHandler(req: Request, res: Response){
   const {username, password} = req.body;
     if (!username || !password) {
       throw new Error("Missing user username/password");

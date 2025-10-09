@@ -7,7 +7,9 @@ import { guestsRouter } from "./api/routes/guestsRoute.js";
 import { config } from "./config/config.js"
 import { authRouter } from "./api/routes/authRoute.js";
 import { dishesRouter } from "./api/routes/dishesRoute.js";
+import { runMigrations } from "./db/dbConfig.js";
 
+await runMigrations();
 
 const app = express();
 const __dirname = path.resolve();
@@ -26,8 +28,8 @@ if (config.isProd) {
   const distPath = path.join(__dirname, "../frontend/dist");
   app.use(express.static(distPath));
 
+  // FIX THIS TO BE SIMPLE
   // serve index.html for any GET request that is not an API call and does not request a file
-  //FIX THIS
   app.use((req, res, next) => {
     if (req.method !== 'GET') return next();
     if (req.path.startsWith('/api')) return next();

@@ -1,8 +1,7 @@
-import React from 'react';
 import PlanHeading from '../components/PlanMealHeading';
 import NavButton from '../components/HomePageNavButton';
 
-const HomePage: React.FC = () => {
+const HomePage = () => {
     return (  
     <div className="min-h-screen flex flex-col justify-center items-center p-6 gap-8 bg-base-200">
       <div className="mb-2 text-center">

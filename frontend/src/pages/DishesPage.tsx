@@ -92,7 +92,7 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
     }
     setSubmitting(true);
     try {
-      await api.post(`/dishes/add/${encodeURIComponent(userId)}`, { name, description, userId });
+      await api.post(`/dishes/${encodeURIComponent(userId)}`, { name, description, userId });
       toast.success('Dish added');
       setName('');
       setDescription('');
@@ -102,7 +102,7 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
       const msg = e?.response?.data?.message || 'Failed to add dish';
       toast.error(msg);
     } finally {
-      setSubmitting(false);
+      setSubmitting(false); 
     }
   }
 

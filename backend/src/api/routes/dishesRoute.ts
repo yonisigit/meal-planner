@@ -1,7 +1,7 @@
 import express from "express";
-import { addDishCtrl, getDishesByUserCtlr } from "../controllers/dishesController.js";
+import { addDishHandler, getDishesByUserHandler } from "../handlers/dishesHandler.js";
 
 export const dishesRouter = express.Router();
 
-dishesRouter.get("/:userId", getDishesByUserCtlr);
-dishesRouter.post("/add/:userId", addDishCtrl);
+dishesRouter.get("/:userId", getDishesByUserHandler);
+dishesRouter.post("/:userId", addDishHandler);

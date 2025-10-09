@@ -3,12 +3,12 @@ import { addDish, getDishes, getDishesByUserId } from "../../db/queries/dishQuer
 //import { addGuest, getGuests, getGuestsByUserId } from "../../db/queries/guestQueries.js";
 
 
-export async function getDIshesCtlr(_: Request, res: Response){
+export async function getDIshesHandler(_: Request, res: Response){
   const guests = await getDishes();
   res.json(guests);
 }
 
-export async function addDishCtrl(req: Request, res: Response){
+export async function addDishHandler(req: Request, res: Response){
   try {
     const {name, description, userId} = req.body;
     if (!name || !userId){
@@ -28,7 +28,7 @@ export async function addDishCtrl(req: Request, res: Response){
   }
 }
 
-export async function getDishesByUserCtlr(req: Request, res: Response){
+export async function getDishesByUserHandler(req: Request, res: Response){
   try {
     const userId = req.params.userId;
     if (!userId){

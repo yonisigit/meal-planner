@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6da96270-f804-4900-9452-69e124e77115",
+  "id": "6ae8ebb9-8487-49db-89b9-4c55d6817aa4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "dishes_rank": {
@@ -11,13 +11,6 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -57,21 +50,17 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "dishes_rank_guest_id_dish_id_unique": {
+          "name": "dishes_rank_guest_id_dish_id_unique",
+          "columns": [
+            "guest_id",
+            "dish_id"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
-        "dishes_rank_user_id_users_username_fk": {
-          "name": "dishes_rank_user_id_users_username_fk",
-          "tableFrom": "dishes_rank",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "username"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "dishes_rank_guest_id_guests_id_fk": {
           "name": "dishes_rank_guest_id_guests_id_fk",
           "tableFrom": "dishes_rank",
@@ -151,15 +140,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "dishes_user_id_users_username_fk": {
-          "name": "dishes_user_id_users_username_fk",
+        "dishes_user_id_users_id_fk": {
+          "name": "dishes_user_id_users_id_fk",
           "tableFrom": "dishes",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
           "columnsTo": [
-            "username"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
