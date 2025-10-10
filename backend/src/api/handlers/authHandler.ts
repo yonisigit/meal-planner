@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { createUser, getUserByUsername } from "../../db/queries/userQueries.js";
+import { generateAccessToken } from "../../auth.js";
+import { config } from "../../config/config.js";
 
 
 export async function signupHandler(req: Request, res: Response) {
@@ -36,7 +38,15 @@ export async function loginHandler(req: Request, res: Response){
     throw new Error("Password is incorrect")
   }
 
-  res.status(200).json(user);
+  const accessToken = generateAccessToken(user.id, config.jwt.secret);
+  
+  res.status(200).json({
+    userID: user.id,
+    username: user.username,
+    accessToken: accessToken
+  });
 }
+
+
 
 

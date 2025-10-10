@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { addDish, getDishes, getDishesByUserId } from "../../db/queries/dishQueries.js";
-//import { addGuest, getGuests, getGuestsByUserId } from "../../db/queries/guestQueries.js";
+import { authenticateRequest } from "../../auth.js";
 
 
 export async function getDIshesHandler(_: Request, res: Response){
@@ -9,9 +9,14 @@ export async function getDIshesHandler(_: Request, res: Response){
 }
 
 export async function addDishHandler(req: Request, res: Response){
+  const userId = authenticateRequest(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }
   try {
-    const {name, description, userId} = req.body;
-    if (!name || !userId){
+    const {name, description} = req.body;
+    if (!name){
       throw new Error("Missing dish information.");
     }
 
@@ -29,11 +34,12 @@ export async function addDishHandler(req: Request, res: Response){
 }
 
 export async function getDishesByUserHandler(req: Request, res: Response){
+  const userId = authenticateRequest(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }
   try {
-    const userId = req.params.userId;
-    if (!userId){
-      throw new Error("Error with user information");
-    }
     const dishes = await getDishesByUserId(userId);
 
     res.status(200).json(dishes);

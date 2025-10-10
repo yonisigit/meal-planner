@@ -4,9 +4,9 @@ import { addGuestHandler, getGuestsByUserHandler, getGuestDishesHandler, rankDis
 
 export const guestsRouter = express.Router();
 
-guestsRouter.get("/:userId", getGuestsByUserHandler);
+guestsRouter.get("/", getGuestsByUserHandler);
 
-guestsRouter.post("/:userId", addGuestHandler);
+guestsRouter.post("/", addGuestHandler);
 
 guestsRouter.get("/:guestId/dishes", getGuestDishesHandler);
 guestsRouter.post("/:guestId/dishes/:dishId", rankDishHandler);

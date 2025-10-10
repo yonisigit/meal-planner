@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { addGuest, getGuestDishes, getGuests, getGuestsByUserId, getGuestUser, rankDish } from "../../db/queries/guestQueries.js";
+import { authenticateRequest } from "../../auth.js";
 
 
 export async function getGuestsHandler(_: Request, res: Response) {
@@ -8,9 +9,15 @@ export async function getGuestsHandler(_: Request, res: Response) {
 }
 
 export async function addGuestHandler(req: Request, res: Response) {
+  const userId = authenticateRequest(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }
+
   try {
-    const { name, userId } = req.body;
-    if (!name || !userId) {
+    const { name } = req.body;
+    if (!name) {
       throw new Error("Missing guest information.");
     }
 
@@ -27,11 +34,12 @@ export async function addGuestHandler(req: Request, res: Response) {
 }
 
 export async function getGuestsByUserHandler(req: Request, res: Response) {
+  const userId = authenticateRequest(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }  
   try {
-    const userId = req.params.userId;
-    if (!userId) {
-      throw new Error("Error with user information");
-    }
     const guests = await getGuestsByUserId(userId);
 
     res.status(200).json(guests);
@@ -41,19 +49,18 @@ export async function getGuestsByUserHandler(req: Request, res: Response) {
 }
 
 export async function getGuestDishesHandler(req: Request, res: Response) {
+  const userId = authenticateRequest(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }
   try {
     const guestId = req.params.guestId;
     if (!guestId) {
       throw new Error("Error with guest info.");
     }
 
-    //TODO: get userId from auth token
-    const user = await getGuestUser(guestId);
-    if (!user?.userId){
-      throw new Error("error with userid");
-    }
-
-    const dishes = await getGuestDishes(user.userId, guestId)
+    const dishes = await getGuestDishes(userId, guestId)
 
     res.status(200).json(dishes);
 
@@ -63,15 +70,27 @@ export async function getGuestDishesHandler(req: Request, res: Response) {
 }
 
 export async function rankDishHandler(req: Request, res: Response) {
+  const userId = authenticateRequest(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }
   try {
-    const { guestId, dishId, rank } = req.body;
+    const { guestId, dishId } = req.params;
+    const { rank } = req.body;
 
     if (!guestId || !dishId || !rank) {
       throw new Error("Error with dish rank info.");
     }
 
-    if (rank > 3 || rank < 1){
+    if (rank > 3 || rank < 1) {
       throw new Error("rank must be between 1 and 3")
+    }
+
+    const guestsUser = await getGuestUser(guestId);
+    if (guestsUser?.userId !== userId) {
+      res.status(403).json({ "message": "Forbidden" });
+      return;
     }
 
     const rankedDish = await rankDish(guestId, dishId, rank);

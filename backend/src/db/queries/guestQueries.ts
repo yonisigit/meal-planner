@@ -20,7 +20,6 @@ export async function getGuestsByUserId(userId: string){
 }
 
 export async function getGuestDishes(userId: string, guestId: string){
-  // Return all dishes for the given user, with the optional rank the specified guest gave.
   // Use LEFT JOIN so dishes without a rank for this guest still appear with rank = null.
   const rows = await db
     .select({
@@ -49,7 +48,11 @@ export async function rankDish(guestId: string, dishId: string, rank: number){
     guestId,
     dishId,
     rank
-  }).returning();
+  }).onConflictDoUpdate({
+    target: [dishesRankTable.guestId, dishesRankTable.dishId],
+    set: { rank, updatedAt: new Date().toISOString() }
+  })
+  .returning();
 
   return rankedDish;
 }
@@ -57,7 +60,6 @@ export async function rankDish(guestId: string, dishId: string, rank: number){
 
 export async function getGuestUser(guestId: string) {
   const [user] = await db.select({userId: guestsTable.userId}).from(guestsTable).where(eq(guestsTable.id, guestId));
-
   return user;
 }
 
