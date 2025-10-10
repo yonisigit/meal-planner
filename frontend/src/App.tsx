@@ -7,17 +7,15 @@ import LoginPage from './pages/LoginPage';
 
 const App = () => {
   return (
-    <div data-theme="retro">
-      <Routes>
-  <Route path="/" element={<LoginPage />}/>
-  <Route path="/home" element={<HomePage />}/>
-        <Route path="/dishes" element={<DishesPage />}/>
-        <Route path="/guests" element={<GuestsPage />}/>
-        <Route path="/meals" element={<MealsPage />}/>
-  <Route path="/login" element={<LoginPage />}/>
-      </Routes>
-    </div>
-  )
-}
+    <Routes>
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/home" element={<HomePage />} />
+      <Route path="/dishes" element={<DishesPage />} />
+      <Route path="/guests" element={<GuestsPage />} />
+      <Route path="/meals" element={<MealsPage />} />
+      <Route path="/login" element={<LoginPage />} />
+    </Routes>
+  );
+};
 
-export default App
+export default App;
