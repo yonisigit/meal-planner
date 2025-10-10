@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import HomeButton from '../components/HomeButton';
 import api from '../lib/axios';
 import type { AxiosResponse } from 'axios';
 
@@ -37,8 +36,6 @@ const MealsPage = () => {
     <div className="relative min-h-screen overflow-hidden bg-[#fdf4e3] text-[#3f2a1d]">
       <div className="pointer-events-none absolute -top-32 right-[-120px] h-96 w-96 rounded-full bg-[#f9c784] opacity-35 blur-3xl"></div>
       <div className="pointer-events-none absolute bottom-[-180px] left-[-100px] h-96 w-96 rounded-full bg-[#d88c9a] opacity-30 blur-3xl"></div>
-      <HomeButton />
-
       <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-24 lg:px-12">
         <header className="mb-12 max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">Meal plans</p>
