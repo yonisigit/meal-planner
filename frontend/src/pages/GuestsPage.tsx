@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 type Guest = {
   id: string;
@@ -11,18 +12,20 @@ type Guest = {
 };
 
 const GuestsPage = () => {
+  const { accessToken } = useAuth();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const userId = (() => {
-        try { return localStorage.getItem('userId'); } catch { return null; }
-      })();
-      const url = userId ? `/guests/${encodeURIComponent(userId)}` : '/guests/';
-      const res = await api.get(url);
+      if (!accessToken) {
+        setError('Please log in to view guests.');
+        setGuests([]);
+        return;
+      }
+      const res = await api.get('/guests');
       setGuests(res.data || []);
       setError(null);
     } catch (e) {
@@ -30,12 +33,11 @@ const GuestsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refresh]);
 
   const totalGuests = guests.length;
   const highlightText = useMemo(() => {
@@ -156,6 +158,7 @@ function GuestRow({ guest }: { guest: Guest }){
 }
 
 function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => void }){
+  const { accessToken } = useAuth();
   const [dishes, setDishes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -165,9 +168,8 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
     async function load(){
       setLoading(true);
       try{
-        const userId = (() => { try { return localStorage.getItem('userId'); } catch { return null; } })();
-        if (!userId) throw new Error('Missing userId');
-        const res = await api.get(`/guests/${encodeURIComponent(guest.id)}/dishes`, { params: { userId } });
+        if (!accessToken) throw new Error('Missing access token');
+        const res = await api.get(`/guests/${encodeURIComponent(guest.id)}/dishes`);
         if (!mounted) return;
         setDishes(res.data || []);
         setError(null);
@@ -179,13 +181,12 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
     }
     load();
     return () => { mounted = false; };
-  }, [guest.id]);
+  }, [accessToken, guest.id]);
 
   async function saveRank(dishId: string, rank: number | null){
     try{
-      const userId = (() => { try { return localStorage.getItem('userId'); } catch { return null; } })();
-      if (!userId) throw new Error('Missing userId');
-      await api.post(`/guests/${encodeURIComponent(guest.id)}/dishes/${encodeURIComponent(dishId)}`, { guestId: guest.id, dishId, rank });
+      if (!accessToken) throw new Error('Missing access token');
+      await api.post(`/guests/${encodeURIComponent(guest.id)}/dishes/${encodeURIComponent(dishId)}`, { rank });
       toast.success('Rank saved');
       const res = await api.get(`/guests/${encodeURIComponent(guest.id)}/dishes`);
       setDishes(res.data || []);
@@ -245,23 +246,21 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
 export default GuestsPage;
 
 function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
+  const { accessToken } = useAuth();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
     if (!name) return toast.error('Please enter a guest name');
-    const userId = (() => {
-      try { return localStorage.getItem('userId'); } catch { return null; }
-    })();
-    if (!userId) {
-      toast.error('No userId found. Please login first.');
-      return;
-    }
     setSubmitting(true);
     try {
-      // POST to /guests/add/{userId} with required body
-  await api.post(`/guests/${encodeURIComponent(userId)}`, { name, userId });
+      if (!accessToken) {
+        toast.error('Missing access token. Please login again.');
+        setSubmitting(false);
+        return;
+      }
+      await api.post('/guests', { name });
       toast.success('Guest added');
       setName('');
       setOpen(false);

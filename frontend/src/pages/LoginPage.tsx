@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PlanHeading from '../components/PlanMealHeading';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const [mode, setMode] = useState<'idle' | 'login' | 'signup'>('idle');
@@ -11,6 +12,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { setAuth } = useAuth();
 
   async function submit() {
     setLoading(true);
@@ -40,13 +42,11 @@ const LoginPage = () => {
       // always attempt login (either after signup or when mode === 'login')
       const loginRes = await api.post('/auth/login', { username, password });
 
-      // save returned user id in localStorage for now (will replace with proper auth later)
-      const id = loginRes?.data?.id;
-      try {
-        if (id) localStorage.setItem('userId', String(id));
-      } catch {
-        // ignore localStorage errors
-      }
+      const { userID, accessToken } = loginRes?.data ?? {};
+      setAuth({
+        userId: userID ?? null,
+        accessToken: accessToken ?? null,
+      });
 
       toast.success(mode === 'login' ? 'Logged in' : 'Signed up and logged in');
       navigate('/home');

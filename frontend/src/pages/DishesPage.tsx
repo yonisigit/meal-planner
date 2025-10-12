@@ -1,8 +1,9 @@
 
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 type Dish = {
   id: string;
@@ -13,20 +14,22 @@ type Dish = {
 };
 
 const DishesPage = () => {
+  const { accessToken } = useAuth();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const highlightedCount = dishes.filter(d => Boolean(d.description)).length;
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const userId = (() => {
-        try { return localStorage.getItem('userId'); } catch { return null; }
-      })();
-      const url = userId ? `/dishes/${encodeURIComponent(userId)}` : '/dishes/';
-      const res = await api.get(url);
+      if (!accessToken) {
+        setError('Please log in to view dishes.');
+        setDishes([]);
+        return;
+      }
+      const res = await api.get('/dishes');
       setDishes(res.data || []);
       setError(null);
     } catch (e) {
@@ -34,12 +37,11 @@ const DishesPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refresh]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#fdf4e3] text-[#3f2a1d]">
@@ -145,6 +147,7 @@ const DishList = ({ dishes, loading, error }: { dishes: Dish[]; loading: boolean
 export default DishesPage;
 
 function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
+  const { accessToken } = useAuth();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -152,16 +155,13 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
 
   async function submit() {
     if (!name) return toast.error('Please enter a dish name');
-    const userId = (() => {
-      try { return localStorage.getItem('userId'); } catch { return null; }
-    })();
-    if (!userId) {
-      toast.error('No userId found. Please login first.');
+    if (!accessToken) {
+      toast.error('Missing access token. Please login again.');
       return;
     }
     setSubmitting(true);
     try {
-      await api.post(`/dishes/${encodeURIComponent(userId)}`, { name, description, userId });
+      await api.post('/dishes', { name, description });
       toast.success('Dish added');
       setName('');
       setDescription('');

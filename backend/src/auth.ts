@@ -56,3 +56,4 @@ export function authenticateRequest(req: Request){
     throw new Error("Failed to authenticate token");
   }
 }
+
