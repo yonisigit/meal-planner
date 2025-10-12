@@ -8,7 +8,7 @@
     "build": "npx tsc",
     "start": "node dist/server.js",
     "lint": "eslint . --ext .ts",
-    "test": "jest --passWithNoTests",
+  "test": "NODE_OPTIONS=--experimental-vm-modules jest --passWithNoTests",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
@@ -36,6 +36,7 @@
     "drizzle-kit": "^0.31.5",
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.1"
   }

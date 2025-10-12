@@ -6,15 +6,10 @@ import type { Request, Response } from "express";
 import { revokeRefreshToken } from "./db/queries/userQueries.js";
 
 
-function nowInSeconds() {
-  return Math.floor(Date.now() / 1000);
-}
-
-
 
 type payload = Pick<JwtPayload, "iss" | "sub" | "iat" | "exp">;
 export function generateAccessToken(userId: string, secret: string) {
-  const issuedAt = nowInSeconds();
+  const issuedAt = Math.floor(Date.now() / 1000);
   const expiresAt = issuedAt + config.jwt.defaultExpiry;
   const tokenPayload: payload = {
     iss: config.jwt.issuer,
@@ -29,12 +24,12 @@ export function generateAccessToken(userId: string, secret: string) {
 export function validateToken(token: string, secret: string) {
   try {
     const decodedPayload = jwt.verify(token, secret) as JwtPayload;
-    return { valid: true, expired: false, payload: decodedPayload };
+    return { valid: true, expired: false, payload: decodedPayload  };  
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
       return { valid: false, expired: true, payload: null };
     }
-    return { valid: false, expired: false, payload: null };
+    return { valid: false, expired: false, payloads: null };
   }
 
 }
@@ -59,9 +54,6 @@ export function authenticateUserId(req: Request){
   const token = getBearerToken(req);
   try {
     const decoded = validateToken(token, config.jwt.secret);
-    if (!decoded.valid || !decoded.payload?.sub) {
-      throw new Error("Invalid token");
-    }
     return decoded.payload?.sub; // userId
   } catch (error) {
     throw new Error("Failed to authenticate token");
@@ -72,12 +64,8 @@ export function generateRefreshToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-export function hashToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
-
 export async function revokeHandler(req: Request, res: Response){
   const refreshToken = getBearerToken(req);
-  await revokeRefreshToken(hashToken(refreshToken));
+  await revokeRefreshToken(refreshToken);
   res.status(204).send(); 
 }

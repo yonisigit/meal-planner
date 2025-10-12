@@ -42,11 +42,10 @@ const LoginPage = () => {
       // always attempt login (either after signup or when mode === 'login')
       const loginRes = await api.post('/auth/login', { username, password });
 
-      const { userID, accessToken, refreshToken } = loginRes?.data ?? {};
+      const { userID, accessToken } = loginRes?.data ?? {};
       setAuth({
         userId: userID ?? null,
         accessToken: accessToken ?? null,
-        refreshToken: refreshToken ?? null,
       });
 
       toast.success(mode === 'login' ? 'Logged in' : 'Signed up and logged in');
