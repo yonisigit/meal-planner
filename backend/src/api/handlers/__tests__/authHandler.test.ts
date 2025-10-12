@@ -33,7 +33,6 @@ const mockRevokeRefreshToken = jest.fn<(token: string) => Promise<void>>();
 const mockGenerateAccessToken = jest.fn<(userId: string, secret: string) => string>();
 const mockGenerateRefreshToken = jest.fn<() => string>();
 const mockGetBearerToken = jest.fn<(req: Request) => string>();
-const mockHashToken = jest.fn<(token: string) => string>();
 
 let handlers: AuthHandlersModule;
 
@@ -59,7 +58,6 @@ beforeEach(async () => {
     generateAccessToken: mockGenerateAccessToken,
     generateRefreshToken: mockGenerateRefreshToken,
     getBearerToken: mockGetBearerToken,
-     hashToken: mockHashToken,
   }));
 
   handlers = await import("../authHandler.js");
@@ -138,7 +136,7 @@ describe("loginHandler", () => {
       "refresh-token",
       expect.objectContaining({
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: "strict",
       }),
     );
@@ -176,26 +174,21 @@ describe("loginHandler", () => {
 });
 
 describe("refreshHandler", () => {
-  test("responds 401 when bearer token missing", async () => {
-    mockGetBearerToken.mockImplementation(() => {
-      throw new Error("Invalid authorization header");
-    });
-
-    const req = {} as Request;
+  test("responds 401 when refresh token missing", async () => {
+    const req = { cookies: {} } as Request;
     const { res, status, json } = createMockResponse();
 
-    await expect(handlers.refreshHandler(req, res)).rejects.toThrow("Invalid authorization header");
+    await handlers.refreshHandler(req, res);
 
-    expect(status).not.toHaveBeenCalled();
-    expect(json).not.toHaveBeenCalled();
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith({ message: "Unauthorized" });
     expect(mockGetRefreshToken).not.toHaveBeenCalled();
   });
 
   test("responds 401 when refresh token not found", async () => {
-    mockGetBearerToken.mockReturnValue("refresh-token");
+    const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
     mockGetRefreshToken.mockResolvedValue(null);
 
-    const req = {} as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.refreshHandler(req, res);
@@ -212,10 +205,8 @@ describe("refreshHandler", () => {
       expiresAt: Date.now() + 10_000,
     };
 
-    mockGetBearerToken.mockReturnValue("refresh-token");
     mockGetRefreshToken.mockResolvedValue(stored);
-
-    const req = {} as Request;
+  const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.refreshHandler(req, res);
@@ -232,10 +223,8 @@ describe("refreshHandler", () => {
       expiresAt: Date.now() - 1,
     };
 
-    mockGetBearerToken.mockReturnValue("refresh-token");
     mockGetRefreshToken.mockResolvedValue(stored);
-
-    const req = {} as Request;
+  const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.refreshHandler(req, res);
@@ -252,11 +241,10 @@ describe("refreshHandler", () => {
       expiresAt: Date.now() + 60_000,
     };
 
-    mockGetBearerToken.mockReturnValue("refresh-token");
     mockGetRefreshToken.mockResolvedValue(stored);
     mockGenerateAccessToken.mockReturnValue("new-access-token");
 
-    const req = {} as Request;
+  const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.refreshHandler(req, res);
