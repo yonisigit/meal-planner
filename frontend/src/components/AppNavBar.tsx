@@ -1,4 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../lib/axios';
+import { useAuth } from '../context/AuthContext';
 
 const navLinks = [
   { label: 'Home', to: '/home' },
@@ -10,18 +12,19 @@ const navLinks = [
 const AppNavBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { clearAuth } = useAuth();
 
   function goHome() {
     navigate('/home');
   }
 
   function logout() {
-    try {
-      localStorage.removeItem('userId');
-    } catch {
-      // ignore storage issues
-    }
-    navigate('/login');
+    clearAuth();
+    api.post('/auth/revoke').catch(() => {
+      // ignore network errors during logout
+    }).finally(() => {
+      navigate('/login');
+    });
   }
 
   return (
