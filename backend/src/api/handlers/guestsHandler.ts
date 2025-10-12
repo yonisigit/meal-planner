@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { addGuest, getGuestDishes, getGuests, getGuestsByUserId, getGuestUser, rankDish } from "../../db/queries/guestQueries.js";
-import { authenticateRequest } from "../../auth.js";
+import { authenticateUserId } from "../../auth.js";
 
 
 export async function getGuestsHandler(_: Request, res: Response) {
@@ -9,8 +9,8 @@ export async function getGuestsHandler(_: Request, res: Response) {
 }
 
 export async function addGuestHandler(req: Request, res: Response) {
-  const userId = authenticateRequest(req);
-  if (!userId) {
+  const userId = authenticateUserId(req);
+    if (!userId) {
     res.status(401).json({ "message": "Unauthorized" });
     return;
   }
@@ -34,7 +34,7 @@ export async function addGuestHandler(req: Request, res: Response) {
 }
 
 export async function getGuestsByUserHandler(req: Request, res: Response) {
-  const userId = authenticateRequest(req);
+  const userId = authenticateUserId(req);
   if (!userId) {
     res.status(401).json({ "message": "Unauthorized" });
     return;
@@ -49,7 +49,7 @@ export async function getGuestsByUserHandler(req: Request, res: Response) {
 }
 
 export async function getGuestDishesHandler(req: Request, res: Response) {
-  const userId = authenticateRequest(req);
+  const userId = authenticateUserId(req);
   if (!userId) {
     res.status(401).json({ "message": "Unauthorized" });
     return;
@@ -70,7 +70,7 @@ export async function getGuestDishesHandler(req: Request, res: Response) {
 }
 
 export async function rankDishHandler(req: Request, res: Response) {
-  const userId = authenticateRequest(req);
+  const userId = authenticateUserId(req);
   if (!userId) {
     res.status(401).json({ "message": "Unauthorized" });
     return;

@@ -45,3 +45,14 @@ export const dishesRankTable = sqliteTable("dishes_rank", {
 );
 
 export type DishRank = typeof dishesRankTable.$inferInsert;
+
+export const refreshTokensTable = sqliteTable("refresh_tokens", {
+  token: text("token").primaryKey().notNull(),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  expiresAt: integer("expires_at").notNull(),
+  revokedAt: integer("revoked_at"),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export type RefreshToken = typeof refreshTokensTable.$inferInsert;  

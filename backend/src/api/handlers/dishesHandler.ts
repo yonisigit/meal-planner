@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { addDish, getDishes, getDishesByUserId } from "../../db/queries/dishQueries.js";
-import { authenticateRequest } from "../../auth.js";
+import { authenticateUserId
+ } from "../../auth.js";
 
 
 export async function getDIshesHandler(_: Request, res: Response){
@@ -9,7 +10,7 @@ export async function getDIshesHandler(_: Request, res: Response){
 }
 
 export async function addDishHandler(req: Request, res: Response){
-  const userId = authenticateRequest(req);
+  const userId = authenticateUserId(req);
   if (!userId) {
     res.status(401).json({ "message": "Unauthorized" });
     return;
@@ -34,7 +35,7 @@ export async function addDishHandler(req: Request, res: Response){
 }
 
 export async function getDishesByUserHandler(req: Request, res: Response){
-  const userId = authenticateRequest(req);
+  const userId = authenticateUserId(req);
   if (!userId) {
     res.status(401).json({ "message": "Unauthorized" });
     return;
