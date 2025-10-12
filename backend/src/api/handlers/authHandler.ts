@@ -6,15 +6,15 @@ import { config } from "../../config/config.js";
 
 export async function signupHandler(req: Request, res: Response) {
   try {
-    const {username, password} = req.body;
+    const { username, password } = req.body;
     if (!username || !password) {
       throw new Error("Missing user username/password");
     }
 
-    if (await getUserByUsername(username)){
+    if (await getUserByUsername(username)) {
       throw new Error("Username already exists");
     }
-    
+
     const user = await createUser(req.body);
 
     res.status(200).json(user);
@@ -24,33 +24,36 @@ export async function signupHandler(req: Request, res: Response) {
 }
 
 
-export async function loginHandler(req: Request, res: Response){
-  const {username, password} = req.body;
-    if (!username || !password) {
-      throw new Error("Missing user username/password");
-    }
+export async function loginHandler(req: Request, res: Response) {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    throw new Error("Missing user username/password");
+  }
 
   const user = await getUserByUsername(username);
-  if (!user){
+  if (!user) {
     throw new Error("Username does not exist");
   }
-  if(user.password !== password){
+  if (user.password !== password) {
     throw new Error("Password is incorrect")
   }
 
   const accessToken = generateAccessToken(user.id, config.jwt.secret);
   const refreshToken = generateRefreshToken();
   await saveRefreshToken(refreshToken, user.id);
-  
-  res.status(200).json({
-    userID: user.id,
-    username: user.username,
-    accessToken: accessToken,
-    refreshToken: refreshToken
-  });
+
+  res.status(200).
+    cookie("refreshToken", refreshToken, {
+      httpOnly: true, secure: true, sameSite: 'strict', maxAge: config.jwt.refreshExpiry
+    }).
+    json({
+      userID: user.id,
+      username: user.username,
+      accessToken: accessToken,
+    });
 }
 
-export async function refreshHandler(req: Request, res: Response){  
+export async function refreshHandler(req: Request, res: Response) {
   const refreshToken = getBearerToken(req);
   if (!refreshToken) {
     res.status(401).json({ "message": "Unauthorized" });
@@ -61,7 +64,7 @@ export async function refreshHandler(req: Request, res: Response){
   if (!savedRefreshToken || savedRefreshToken.revokedAt) {
     res.status(401).json({ "message": "Invalid refresh token" });
     return;
-  } 
+  }
   if (savedRefreshToken.expiresAt < Date.now()) {
     await revokeRefreshToken(refreshToken);
     res.status(401).json({ "message": "Refresh token expired" });
