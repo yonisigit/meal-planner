@@ -2,6 +2,7 @@ import "dotenv/config"; // = dotenv.config()
 import express from "express";
 import cors from "cors";
 import path from "path";
+import cookieParser from "cookie-parser";
 
 import { guestsRouter } from "./api/routes/guestsRoute.js";
 import { config } from "./config/config.js"
@@ -15,9 +16,13 @@ const app = express();
 const __dirname = path.resolve();
 
 app.use(express.json());
+app.use(cookieParser());
 
 if (!config.isProd){
-  app.use(cors());
+  app.use(cors({
+    origin: "http://localhost:5174",
+    credentials: true,
+  }));
 }
 
 app.use("/api/auth", authRouter);

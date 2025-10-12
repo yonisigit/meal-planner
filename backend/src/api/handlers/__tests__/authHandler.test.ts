@@ -67,12 +67,14 @@ beforeEach(async () => {
 
 function createMockResponse() {
   const json = jest.fn();
-  const status = jest.fn(() => ({ json }));
+  const cookie = jest.fn().mockReturnThis();
+  const status = jest.fn().mockReturnThis();
   const res = {
     status,
+    cookie,
     json,
   } as unknown as Response;
-  return { res, status, json };
+  return { res, status, cookie, json };
 }
 
 describe("signupHandler", () => {
@@ -126,17 +128,25 @@ describe("loginHandler", () => {
     mockGenerateRefreshToken.mockReturnValue("refresh-token");
 
     const req = { body: { username: "alice", password: "secret" } } as Request;
-    const { res, status, json } = createMockResponse();
+    const { res, status, json, cookie } = createMockResponse();
 
     await handlers.loginHandler(req, res);
 
     expect(mockSaveRefreshToken).toHaveBeenCalledWith("refresh-token", "user-1");
+    expect(cookie).toHaveBeenCalledWith(
+      "refreshToken",
+      "refresh-token",
+      expect.objectContaining({
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+      }),
+    );
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith({
       userID: "user-1",
       username: "alice",
       accessToken: "access-token",
-      refreshToken: "refresh-token",
     });
   });
 

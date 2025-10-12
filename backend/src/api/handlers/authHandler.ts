@@ -44,7 +44,10 @@ export async function loginHandler(req: Request, res: Response) {
 
   res.status(200).
     cookie("refreshToken", refreshToken, {
-      httpOnly: true, secure: true, sameSite: 'strict', maxAge: config.jwt.refreshExpiry
+      httpOnly: true,
+      secure: false,
+      sameSite: 'strict',
+      maxAge: config.jwt.refreshExpiry
     }).
     json({
       userID: user.id,
@@ -54,7 +57,7 @@ export async function loginHandler(req: Request, res: Response) {
 }
 
 export async function refreshHandler(req: Request, res: Response) {
-  const refreshToken = getBearerToken(req);
+  const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) {
     res.status(401).json({ "message": "Unauthorized" });
     return;
@@ -77,5 +80,9 @@ export async function refreshHandler(req: Request, res: Response) {
 }
 
 
-
+export async function revokeHandler(req: Request, res: Response) {
+  const refreshToken = req.cookies.refreshToken;
+  await revokeRefreshToken(refreshToken);
+  res.status(204).send();
+}
 

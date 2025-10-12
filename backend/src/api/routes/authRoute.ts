@@ -1,6 +1,6 @@
 import express from "express";
-import { loginHandler, refreshHandler, signupHandler } from "../handlers/authHandler.js";
-import { revokeHandler } from "../../auth.js";
+import { loginHandler, refreshHandler, revokeHandler, signupHandler } from "../handlers/authHandler.js";
+
 
 
 export const authRouter = express.Router();

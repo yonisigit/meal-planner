@@ -64,8 +64,3 @@ export function generateRefreshToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-export async function revokeHandler(req: Request, res: Response){
-  const refreshToken = getBearerToken(req);
-  await revokeRefreshToken(refreshToken);
-  res.status(204).send(); 
-}
