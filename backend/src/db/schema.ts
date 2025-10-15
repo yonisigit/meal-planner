@@ -5,7 +5,7 @@ export const usersTable = sqliteTable("users", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  
+
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
@@ -55,4 +55,25 @@ export const refreshTokensTable = sqliteTable("refresh_tokens", {
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export type RefreshToken = typeof refreshTokensTable.$inferInsert;  
+export type RefreshToken = typeof refreshTokensTable.$inferInsert;
+
+export const mealsTable = sqliteTable("meals_table", {
+  id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
+  hostId: text("host_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  date: text("date").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
+export type Meal = typeof mealsTable.$inferInsert;
+
+export const mealGuestsTable = sqliteTable("meal_guests", {
+  mealId: text("meal_id").notNull().references(() => mealsTable.id, { onDelete: "cascade" }),
+  guestId: text("guest_id").notNull().references(() => guestsTable.id, { onDelete: "cascade" })
+},
+  (t) => [unique().on(t.mealId, t.guestId)]
+);
+
+export type MealGuest = typeof mealGuestsTable.$inferInsert;

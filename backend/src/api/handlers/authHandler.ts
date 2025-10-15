@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { createUser, getRefreshToken, getUserByUsername, revokeRefreshToken, saveRefreshToken } from "../../db/queries/userQueries.js";
-import { generateAccessToken, generateRefreshToken, getBearerToken } from "../../auth.js";
+import { generateAccessToken, generateRefreshToken } from "../../auth.js";
 import { config } from "../../config/config.js";
 
 

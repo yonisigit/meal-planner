@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 import { config } from "./config/config.js";
 import type { Request, Response } from "express";
-import { revokeRefreshToken } from "./db/queries/userQueries.js";
+
 
 
 
