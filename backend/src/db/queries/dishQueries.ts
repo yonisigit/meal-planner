@@ -14,6 +14,6 @@ export async function addDish(newDish: Dish){
 }
 
 export async function getDishesByUserId(userId: string){
-  const dishes = await db.select().from(dishesTable).where(eq(dishesTable.userId, userId));
+  const dishes = await db.select().from(dishesTable).where(eq(dishesTable.userId, userId)).orderBy(dishesTable.name);
   return dishes;
 }

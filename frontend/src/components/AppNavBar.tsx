@@ -26,7 +26,13 @@ const AppNavBar = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-white/60 bg-[#fdf4e3]/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 text-[#3f2a1d] lg:px-12">
-        <span className="text-xs font-semibold uppercase tracking-[0.35em] text-[#a77044]">Meal planner</span>
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          className="text-xs font-semibold uppercase tracking-[0.35em] text-[#a77044] transition hover:text-[#2b1c12]"
+        >
+          Meal planner
+        </button>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-[#6f5440] lg:flex">
           {navLinks.map((link) => {

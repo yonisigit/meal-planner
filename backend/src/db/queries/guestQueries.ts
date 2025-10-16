@@ -4,7 +4,7 @@ import { dishesRankTable, dishesTable, guestsTable, type Guest } from "../schema
 
 
 export async function getGuests(){
-    const guests = await db.select().from(guestsTable);
+    const guests = await db.select().from(guestsTable).orderBy(guestsTable.name);
     return guests;
 }
 
@@ -15,7 +15,7 @@ export async function addGuest(newGuest: Guest){
 }
 
 export async function getGuestsByUserId(userId: string){
-  const guests = await db.select().from(guestsTable).where(eq(guestsTable.userId, userId));
+  const guests = await db.select().from(guestsTable).where(eq(guestsTable.userId, userId)).orderBy(guestsTable.name);
   return guests;
 }
 
@@ -37,7 +37,7 @@ export async function getGuestDishes(userId: string, guestId: string){
         eq(dishesRankTable.guestId, guestId)
       )
     )
-    .where(eq(dishesTable.userId, userId));
+    .where(eq(dishesTable.userId, userId)).orderBy(dishesTable.name);
 
   return rows;
 }
