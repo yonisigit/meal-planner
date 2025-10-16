@@ -19,8 +19,6 @@ const DishesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const highlightedCount = dishes.filter(d => Boolean(d.description)).length;
-
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -54,53 +52,16 @@ const DishesPage = () => {
           <p className="mt-3 text-sm text-[#6f5440]">Document the meals you love to cook, along with the little details that make them memorable. When it is time to host, your ideas are already waiting.</p>
         </header>
 
-        <section className="mb-10 flex flex-wrap gap-3">
-          <StatPill label="Total dishes" value={dishes.length} />
-          <StatPill label="Stories captured" value={highlightedCount} helper="with descriptions" />
-          <StatPill label="Last updated" value={formatLastUpdated(dishes)} helper="based on revisions" />
-        </section>
-
-        <section className="grid gap-10 lg:grid-cols-[1.15fr,0.85fr]">
-          <div className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold text-[#2b1c12]">Dish library</h2>
-                <p className="text-sm text-[#6f5440]">Browse and fine tune your collection.</p>
-              </div>
-              <AddDishButton onAdded={refresh} />
+        <section className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold text-[#2b1c12]">Dish library</h2>
+              <p className="text-sm text-[#6f5440]">Browse and fine tune your collection.</p>
             </div>
-
-            <DishList dishes={dishes} loading={loading} error={error} />
+            <AddDishButton onAdded={refresh} />
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="rounded-3xl border border-white/60 bg-white/55 p-8 backdrop-blur">
-              <h3 className="text-lg font-semibold text-[#2b1c12]">Hosting tip</h3>
-              <p className="mt-3 text-sm leading-relaxed text-[#6f5440]">
-                Note the small touches that delight your guests. A garnish, a plating style, or a story about where the recipe came from turns dinner into an experience.
-              </p>
-              <div className="mt-6 rounded-2xl bg-[#fbe0d4] p-4 text-sm text-[#5b3d2a]">
-                Coming soon: upload photos, tag dietary notes, and auto-suggest ingredient lists.
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/60 bg-white/55 p-6 backdrop-blur">
-              <h4 className="text-sm font-semibold uppercase tracking-[0.3em] text-[#a77044]">Recently added</h4>
-              <ul className="mt-4 space-y-2 text-sm text-[#6f5440]">
-                {dishes.slice(0, 3).map((dish) => (
-                  <li key={`recent-${dish.id}`} className="flex items-center justify-between rounded-2xl border border-[#f5d8b4]/60 bg-white/80 px-4 py-3">
-                    <span className="font-medium text-[#2b1c12]">{dish.name}</span>
-                    {dish.created_at && (
-                      <span className="text-xs uppercase tracking-widest text-[#a77044]/90">
-                        {new Date(dish.created_at).toLocaleDateString()}
-                      </span>
-                    )}
-                  </li>
-                ))}
-                {dishes.length === 0 && <li className="rounded-2xl border border-dashed border-[#f5d8b4] px-4 py-3 text-center text-xs text-[#6f5440]">Add your first dish to see it spotlighted here.</li>}
-              </ul>
-            </div>
-          </div>
+          <DishList dishes={dishes} loading={loading} error={error} />
         </section>
       </div>
     </div>
@@ -227,29 +188,8 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
 
 const ListShell = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="mt-8 h-[360px] overflow-y-auto rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur">
+    <div className="mt-8 min-h-[280px] rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur">
       {children}
     </div>
   );
 };
-
-const StatPill = ({ label, value, helper }: { label: string; value: number | string; helper?: string }) => (
-  <div className="flex items-center gap-3 rounded-full border border-[#f5d8b4]/70 bg-white/70 px-4 py-2 text-sm text-[#6f5440] shadow-[0_15px_35px_-30px_rgba(167,112,68,0.55)]">
-    <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">{label}</span>
-    <span className="text-base font-semibold text-[#2b1c12]">{value}</span>
-    {helper && <span className="text-xs text-[#6f5440]">{helper}</span>}
-  </div>
-);
-
-function formatLastUpdated(dishes: Dish[]): string {
-  const updatedTimestamps = dishes
-    .map((dish) => dish.updated_at || dish.created_at)
-    .filter(Boolean)
-    .map((value) => new Date(String(value)).getTime())
-    .sort((a, b) => b - a);
-
-  if (updatedTimestamps.length === 0) return 'Add a dish';
-
-  const latest = updatedTimestamps[0];
-  return new Date(latest).toLocaleDateString();
-}

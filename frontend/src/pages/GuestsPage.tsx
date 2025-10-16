@@ -43,7 +43,7 @@ const GuestsPage = () => {
   const highlightText = useMemo(() => {
     if (totalGuests === 0) return 'Your guest list is waiting to be written.';
     if (totalGuests === 1) return 'You have one guest who loves your cooking.';
-    if (totalGuests < 6) return `Planning for ${totalGuests} special guests.`;
+    if (totalGuests < 6) return `Planning for ${totalGuests} special guest${totalGuests === 1 ? '' : 's'}.`;
     return `Hosting repertoire ready for ${totalGuests}+ guests.`;
   }, [totalGuests]);
 
@@ -55,62 +55,19 @@ const GuestsPage = () => {
         <header className="mb-10 max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">Guest profiles</p>
           <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#2b1c12]">Know what every guest loves before they arrive.</h1>
-          <p className="mt-3 text-sm text-[#6f5440]">Capture preferences, remember allergies, and record the dishes that spark conversation. Turn casual dinners into thoughtful gatherings.</p>
+          <p className="mt-3 text-sm text-[#6f5440]">Capture who you are inviting and record the dishes that spark conversation. Turn casual dinners into thoughtful gatherings.</p>
         </header>
 
-        <section className="mb-10 flex flex-wrap gap-3">
-          <StatTile label="Guests on list" value={totalGuests} />
-          <StatTile label="New this week" value={guests.slice(0, 7).filter((guest) => isRecent(guest.created_at)).length} helper="joined in last 7 days" />
-          <StatTile label="Memorable quote" value={highlightText} wide />
-        </section>
-
-        <section className="grid gap-10 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold text-[#2b1c12]">Guest roster</h2>
-                <p className="text-sm text-[#6f5440]">{highlightText}</p>
-              </div>
-              <AddGuestButton onAdded={refresh} />
+        <section className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold text-[#2b1c12]">Guest roster</h2>
+              <p className="text-sm text-[#6f5440]">{highlightText}</p>
             </div>
-
-            <GuestList guests={guests} loading={loading} error={error} />
+            <AddGuestButton onAdded={refresh} />
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="rounded-3xl border border-white/60 bg-white/55 p-8 backdrop-blur">
-              <h3 className="text-lg font-semibold text-[#2b1c12]">Conversation starter</h3>
-              <p className="mt-3 text-sm leading-relaxed text-[#6f5440]">
-                Ask each guest their current food obsession. Keeping track means you can surprise them with a dish that speaks right to their cravings.
-              </p>
-              <div className="mt-6 rounded-2xl bg-[#fbe0d4] p-4 text-sm text-[#5b3d2a]">
-                Up next: share RSVP links and let guests update their preferences directly.
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/60 bg-white/55 p-6 backdrop-blur">
-              <h4 className="text-sm font-semibold uppercase tracking-[0.3em] text-[#a77044]">Guest spotlight</h4>
-              {guests.length > 0 ? (
-                <ul className="mt-4 space-y-3 text-sm text-[#6f5440]">
-                  {guests.slice(0, 3).map((guest) => (
-                    <li key={`spotlight-${guest.id}`} className="flex items-center justify-between gap-3 rounded-2xl border border-[#f5d8b4]/60 bg-white/80 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d37655]/80 text-sm font-semibold text-white">
-                          {guest.name.charAt(0).toUpperCase()}
-                        </span>
-                        <span className="font-medium text-[#2b1c12]">{guest.name}</span>
-                      </div>
-                      {guest.created_at && (
-                        <span className="text-xs uppercase tracking-widest text-[#a77044]/90">Added {new Date(guest.created_at).toLocaleDateString()}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-[#f5d8b4] px-4 py-3 text-xs text-[#6f5440]">Invite your first guest to see them highlighted.</div>
-              )}
-            </div>
-          </div>
+          <GuestList guests={guests} loading={loading} error={error} />
         </section>
       </div>
     </div>
@@ -319,27 +276,10 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
 const ListShell = ({ children, error = false }: { children: ReactNode; error?: boolean }) => {
   return (
     <div
-      className={`mt-8 h-[420px] overflow-y-auto rounded-3xl border border-white/60 bg-white/60 px-1 py-2 text-sm ${error ? 'text-red-500' : 'text-[#6f5440]'} backdrop-blur`}
+      className={`mt-8 min-h-[320px] rounded-3xl border border-white/60 bg-white/60 px-1 py-2 text-sm ${error ? 'text-red-500' : 'text-[#6f5440]'} backdrop-blur`}
       style={{ scrollbarGutter: 'stable both-edges' }}
     >
       {children}
     </div>
   );
 };
-
-const StatTile = ({ label, value, helper, wide = false }: { label: string; value: number | string; helper?: string; wide?: boolean }) => (
-  <div className={`flex ${wide ? 'flex-1 min-w-[240px]' : 'min-w-[180px]'} flex-col gap-1 rounded-2xl border border-[#f5d8b4]/70 bg-white/70 px-4 py-3 text-sm text-[#6f5440] shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]`}>
-    <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">{label}</span>
-    <span className={`text-base font-semibold text-[#2b1c12] ${typeof value === 'string' && value.length > 18 ? 'leading-normal' : ''}`}>{value}</span>
-    {helper && <span className="text-xs text-[#6f5440]">{helper}</span>}
-  </div>
-);
-
-function isRecent(date?: string) {
-  if (!date) return false;
-  const now = Date.now();
-  const then = new Date(date).getTime();
-  if (Number.isNaN(then)) return false;
-  const sevenDays = 7 * 24 * 60 * 60 * 1000;
-  return now - then <= sevenDays;
-}
