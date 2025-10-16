@@ -48,5 +48,12 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true
-  }
+  },
+  "exclude": [
+    "dist",
+    "eslint.config.js",
+    "eslint.config.d.ts",
+    "jest.config.cjs",
+    "drizzle.config.ts"
+  ]
 }

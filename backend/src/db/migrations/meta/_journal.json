@@ -15,6 +15,13 @@
       "when": 1760287833030,
       "tag": "0001_thankful_marvel_apes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1760593571089,
+      "tag": "0002_eager_warpath",
+      "breakpoints": true
     }
   ]
 }

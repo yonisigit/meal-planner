@@ -59,7 +59,7 @@ export type RefreshToken = typeof refreshTokensTable.$inferInsert;
 
 export const mealsTable = sqliteTable("meals_table", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
-  hostId: text("host_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   date: text("date").notNull(),
   name: text("name").notNull(),
   description: text("description"),

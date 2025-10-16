@@ -4,7 +4,7 @@ import { authenticateUserId
  } from "../../auth.js";
 
 
-export async function getDIshesHandler(_: Request, res: Response){
+export async function getDishesHandler(_: Request, res: Response){
   const guests = await getDishes();
   res.json(guests);
 }

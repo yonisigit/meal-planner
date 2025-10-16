@@ -1,7 +1,7 @@
 import env from "./validateEnv.js"
 
-const DEFAULT_JWT_EXPIRY = 60 * 15; // 15 minutes in seconds
-const DEFAULT_JWT_REFRESH_EXPIRY = 60 * 24; // 1 day in seconds
+const DEFAULT_JWT_EXPIRY = 60 * 15 * 1000; // 15 minutes in milliseconds
+const DEFAULT_JWT_REFRESH_EXPIRY = 60 * 60 * 24 * 1000; // 1 day in milliseconds
 
 
 type JWTConfig = {
