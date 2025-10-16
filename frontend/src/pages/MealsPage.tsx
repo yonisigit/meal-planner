@@ -14,11 +14,37 @@ type Meal = {
   updated_at?: string;
 };
 
+type MealGuest = {
+  id: string;
+  name: string;
+};
+
+type GuestOption = MealGuest;
+
 const MealsPage = () => {
   const { accessToken, isInitializing } = useAuth();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mealGuests, setMealGuests] = useState<Record<string, MealGuest[]>>({});
+  const [availableGuests, setAvailableGuests] = useState<GuestOption[]>([]);
+  const [guestOptionsLoading, setGuestOptionsLoading] = useState(false);
+  const [guestOptionsError, setGuestOptionsError] = useState<string | null>(null);
+
+  const loadAvailableGuests = useCallback(async () => {
+    setGuestOptionsLoading(true);
+    try {
+      const res: AxiosResponse<GuestOption[]> = await api.get('/guests');
+      const data = Array.isArray(res.data) ? res.data : [];
+      setAvailableGuests(data);
+      setGuestOptionsError(null);
+    } catch (err) {
+      console.error(err);
+      setGuestOptionsError('Failed to load guests.');
+    } finally {
+      setGuestOptionsLoading(false);
+    }
+  }, []);
 
   const refreshMeals = useCallback(async () => {
     setLoading(true);
@@ -33,11 +59,23 @@ const MealsPage = () => {
         }
         return bTime - aTime;
       });
+      const guestsMap: Record<string, MealGuest[]> = {};
+      await Promise.all(sortedMeals.map(async (meal) => {
+        try {
+          const guestRes: AxiosResponse<MealGuest[]> = await api.get(`/meals/${meal.id}`);
+          guestsMap[meal.id] = Array.isArray(guestRes.data) ? guestRes.data : [];
+        } catch (guestErr) {
+          console.error(guestErr);
+          guestsMap[meal.id] = [];
+        }
+      }));
+      setMealGuests(guestsMap);
       setMeals(sortedMeals);
       setError(null);
     } catch (err) {
       console.error(err);
       setError('Failed to load meals.');
+      setMealGuests({});
     } finally {
       setLoading(false);
     }
@@ -51,10 +89,47 @@ const MealsPage = () => {
   }, [accessToken, isInitializing, refreshMeals]);
 
   useEffect(() => {
+    if (!accessToken || isInitializing) {
+      return;
+    }
+    void loadAvailableGuests();
+  }, [accessToken, isInitializing, loadAvailableGuests]);
+
+  useEffect(() => {
     if (!isInitializing && !accessToken) {
       setMeals([]);
+      setMealGuests({});
+      setAvailableGuests([]);
+      setGuestOptionsError(null);
     }
   }, [accessToken, isInitializing]);
+
+  const loadMealGuests = useCallback(async (mealId: string, { silent = false }: { silent?: boolean } = {}) => {
+    try {
+      const res: AxiosResponse<MealGuest[]> = await api.get(`/meals/${mealId}`);
+      const guests = Array.isArray(res.data) ? res.data : [];
+      setMealGuests((prev) => ({ ...prev, [mealId]: guests }));
+      return guests;
+    } catch (err) {
+      console.error(err);
+      if (!silent) {
+        toast.error('Failed to load meal guests.');
+      }
+      throw err;
+    }
+  }, []);
+
+  const handleAddGuestToMeal = useCallback(async (mealId: string, guestId: string) => {
+    try {
+      await api.post(`/meals/${mealId}`, { guestId });
+      toast.success('Guest added to meal');
+      await loadMealGuests(mealId, { silent: true });
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to add guest to meal.';
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, [loadMealGuests]);
 
   const headline = useMemo(() => {
     if (meals.length === 0) return 'Start by crafting a menu for your next gathering.';
@@ -108,7 +183,16 @@ const MealsPage = () => {
 
             {loading && <ListShell>Loading meals...</ListShell>}
             {error && <ListShell error>{error}</ListShell>}
-            {!loading && !error && <MealList meals={meals} />}
+            {!loading && !error && (
+              <MealList
+                meals={meals}
+                mealGuests={mealGuests}
+                availableGuests={availableGuests}
+                onAddGuest={handleAddGuestToMeal}
+                guestOptionsLoading={guestOptionsLoading}
+                guestOptionsError={guestOptionsError}
+              />
+            )}
           </div>
 
           <div className="flex flex-col gap-6">
@@ -150,7 +234,21 @@ const MealsPage = () => {
   );
 }
 
-const MealList = ({ meals }: { meals: Meal[] }) => {
+const MealList = ({
+  meals,
+  mealGuests,
+  availableGuests,
+  onAddGuest,
+  guestOptionsLoading,
+  guestOptionsError,
+}: {
+  meals: Meal[];
+  mealGuests: Record<string, MealGuest[]>;
+  availableGuests: GuestOption[];
+  onAddGuest: (mealId: string, guestId: string) => Promise<void>;
+  guestOptionsLoading: boolean;
+  guestOptionsError: string | null;
+}) => {
   if (!meals || meals.length === 0) {
     return (
       <ListShell>
@@ -165,20 +263,126 @@ const MealList = ({ meals }: { meals: Meal[] }) => {
     <ListShell>
       <ul className="space-y-3">
         {meals.map(meal => (
-          <li key={meal.id} className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-2">
-                <div className="text-base font-semibold text-[#2b1c12]">{meal.name}</div>
-                {meal.description && <div className="text-sm leading-relaxed text-[#6f5440]">{meal.description}</div>}
-              </div>
-              <div className="shrink-0 text-right text-xs uppercase tracking-[0.28em] text-[#a77044]">
-                {formatDisplayDate(meal.date)}
-              </div>
-            </div>
-          </li>
+          <MealCard
+            key={meal.id}
+            meal={meal}
+            guests={mealGuests[meal.id] ?? []}
+            availableGuests={availableGuests}
+            onAddGuest={onAddGuest}
+            guestOptionsLoading={guestOptionsLoading}
+            guestOptionsError={guestOptionsError}
+          />
         ))}
       </ul>
     </ListShell>
+  );
+};
+
+const MealCard = ({
+  meal,
+  guests,
+  availableGuests,
+  onAddGuest,
+  guestOptionsLoading,
+  guestOptionsError,
+}: {
+  meal: Meal;
+  guests: MealGuest[];
+  availableGuests: GuestOption[];
+  onAddGuest: (mealId: string, guestId: string) => Promise<void>;
+  guestOptionsLoading: boolean;
+  guestOptionsError: string | null;
+}) => {
+  const [selectedGuestId, setSelectedGuestId] = useState('');
+  const [submittingGuest, setSubmittingGuest] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const selectableGuests = useMemo(() => (
+    availableGuests.filter((option) => !guests.some((existing) => existing.id === option.id))
+  ), [availableGuests, guests]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selectedGuestId) {
+      setLocalError('Please select a guest to add.');
+      return;
+    }
+    setSubmittingGuest(true);
+    setLocalError(null);
+    try {
+      await onAddGuest(meal.id, selectedGuestId);
+      setSelectedGuestId('');
+    } catch (err: any) {
+      setLocalError(err?.message || 'Failed to add guest.');
+    } finally {
+      setSubmittingGuest(false);
+    }
+  };
+
+  return (
+    <li className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-2">
+          <div className="text-base font-semibold text-[#2b1c12]">{meal.name}</div>
+          {meal.description && <div className="text-sm leading-relaxed text-[#6f5440]">{meal.description}</div>}
+        </div>
+        <div className="shrink-0 text-right text-xs uppercase tracking-[0.28em] text-[#a77044]">
+          {formatDisplayDate(meal.date)}
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-[#f5d8b4]/60 bg-white/70 p-4">
+        <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Guests</div>
+        {guests.length > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm text-[#6f5440]">
+            {guests.map((guest) => (
+              <li key={`${meal.id}-${guest.id}`} className="rounded-full bg-[#fbe0d4] px-3 py-1 text-[#5b3d2a]">
+                {guest.name}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-3 text-sm text-[#6f5440]">No guests added yet.</div>
+        )}
+
+        <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center" onSubmit={handleSubmit}>
+          <div className="flex w-full flex-col gap-2 sm:w-auto">
+            <select
+              value={selectedGuestId}
+              onChange={(event) => setSelectedGuestId(event.target.value)}
+              disabled={guestOptionsLoading || selectableGuests.length === 0}
+              className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+            >
+              <option value="">Select a guest</option>
+              {selectableGuests.map((guest) => (
+                <option key={guest.id} value={guest.id}>{guest.name}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
+            disabled={submittingGuest || guestOptionsLoading || selectableGuests.length === 0}
+          >
+            {submittingGuest ? 'Adding...' : 'Add guest'}
+          </button>
+        </form>
+        {guestOptionsLoading && (
+          <div className="mt-2 text-xs text-[#6f5440]">Loading guest list...</div>
+        )}
+        {guestOptionsError && (
+          <div className="mt-2 text-xs text-red-500">{guestOptionsError}</div>
+        )}
+        {selectableGuests.length === 0 && !guestOptionsLoading && !guestOptionsError && (
+          <div className="mt-2 text-xs text-[#6f5440]">
+            {availableGuests.length === 0
+              ? 'You have no guests saved yet. Add guests from the guests page first.'
+              : 'All of your guests are already assigned to this meal.'}
+          </div>
+        )}
+        {localError && <div className="mt-2 text-xs text-red-500">{localError}</div>}
+      </div>
+    </li>
   );
 };
 
