@@ -51,7 +51,7 @@ const MealsPage = () => {
   const [availableGuests, setAvailableGuests] = useState<GuestOption[]>([]);
   const [guestOptionsLoading, setGuestOptionsLoading] = useState(false);
   const [guestOptionsError, setGuestOptionsError] = useState<string | null>(null);
-  const [modalGuest, setModalGuest] = useState<{ id: string; name: string } | null>(null);
+  const [modalGuest, setModalGuest] = useState<{ id: string; name: string; mealId: string } | null>(null);
 
   const loadAvailableGuests = useCallback(async () => {
     setGuestOptionsLoading(true);
@@ -195,6 +195,18 @@ const MealsPage = () => {
     }
   }, [loadMealGuests]);
 
+  const handleRemoveGuestFromMeal = useCallback(async (mealId: string, guestId: string) => {
+    try {
+      await api.delete(`/meals/${mealId}/guests/${guestId}`);
+      toast.success('Guest removed from meal');
+      await loadMealGuests(mealId, { silent: true });
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to remove guest from meal.';
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, [loadMealGuests]);
+
   const headline = useMemo(() => {
     if (meals.length === 0) return 'Start by crafting a menu for your next gathering.';
     if (meals.length <= 3) return 'A handful of thoughtful menus ready to impress.';
@@ -256,6 +268,8 @@ const MealsPage = () => {
             <GuestDishesModal
               guestId={modalGuest.id}
               guestName={modalGuest.name}
+              mealId={modalGuest.mealId}
+              onRemoveGuest={handleRemoveGuestFromMeal}
               onClose={() => setModalGuest(null)}
             />
           )}
@@ -296,7 +310,7 @@ const MealList = ({
   guestRanks: Record<string, GuestDishRank[]>;
   guestRanksLoading: Record<string, boolean>;
   guestRanksError: Record<string, string | null>;
-  onOpenGuestModal: (g: { id: string; name: string } | null) => void;
+  onOpenGuestModal: (g: { id: string; name: string; mealId: string } | null) => void;
 }) => {
   if (!meals || meals.length === 0) {
     return (
@@ -366,7 +380,7 @@ const MealCard = ({
   guestRanksLoading: Record<string, boolean>;
   guestRanksError: Record<string, string | null>;
   itemKey: string;
-  onOpenGuestModal: (g: { id: string; name: string } | null) => void;
+  onOpenGuestModal: (g: { id: string; name: string; mealId: string } | null) => void;
 }) => {
   const [selectedGuestId, setSelectedGuestId] = useState('');
   const [submittingGuest, setSubmittingGuest] = useState(false);
@@ -434,7 +448,23 @@ const MealCard = ({
 
       {showMenu && (
         <div className="mt-4 rounded-xl border border-[#eee] bg-white p-3 text-sm text-[#3f2a1d]">
-          <div className="mb-2 font-semibold">Suggested menu</div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="font-semibold">Suggested menu</div>
+            <button
+              type="button"
+              className="text-xs font-medium text-[#d37655] underline decoration-dotted underline-offset-2 disabled:opacity-60"
+              onClick={() => {
+                console.debug('[MealsPage] refresh suggested menu', meal.id);
+                void loadSuggestedMenu(meal.id).catch((err) => {
+                  console.error(err);
+                });
+              }}
+              disabled={isMenuLoading}
+            >
+              {isMenuLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+          <div className="mb-3 text-xs text-[#6f5440]">Suggestions are based on dishes your guests have ranked.</div>
           {isMenuLoading ? (
             <div className="text-xs text-[#6f5440]">Loading suggested menu...</div>
           ) : menuLoadError ? (
@@ -445,9 +475,9 @@ const MealCard = ({
                 <li key={it.id} className="text-sm">
                   <span className="font-medium">{it.name ?? it.dishId}</span>
                   {typeof it.avgRank === 'number' ? (
-                    <span className="ml-2 text-xs text-[#6f5440]">Average ranking: {it.avgRank.toFixed(1)}</span>
+                    <span className="ml-2 text-xs text-[#6f5440]">Avg: {it.avgRank.toFixed(1)}</span>
                   ) : (
-                    <span className="ml-2 text-xs text-[#6f5440]">Average ranking: —</span>
+                    <span className="ml-2 text-xs text-[#6f5440]">Avg: —</span>
                   )}
                   {it.note ? <span className="ml-2 text-xs text-[#6f5440]">— {it.note}</span> : null}
                 </li>
@@ -470,7 +500,7 @@ const MealCard = ({
                     className="rounded-full bg-[#fbe0d4] px-3 py-1 text-[#5b3d2a]"
                     onClick={() => {
                       console.debug('[MealsPage] guest clicked', guest.id, guest.name);
-                      if (onOpenGuestModal) onOpenGuestModal({ id: guest.id, name: guest.name });
+                      if (onOpenGuestModal) onOpenGuestModal({ id: guest.id, name: guest.name, mealId: meal.id });
                     }}
                   >
                     {guest.name}
@@ -526,11 +556,18 @@ const MealCard = ({
 
 export default MealsPage;
 
-function GuestDishesModal({ guestId, guestName, onClose }: { guestId: string; guestName: string; onClose: () => void }){
+function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }: {
+  guestId: string;
+  guestName: string;
+  mealId: string;
+  onRemoveGuest: (mealId: string, guestId: string) => Promise<void>;
+  onClose: () => void;
+}){
   const { accessToken } = useAuth();
   const [dishes, setDishes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -564,18 +601,42 @@ function GuestDishesModal({ guestId, guestName, onClose }: { guestId: string; gu
     }
   }
 
+  const handleRemoveFromMeal = useCallback(async () => {
+    if (!onRemoveGuest) return;
+    setRemoving(true);
+    try {
+      await onRemoveGuest(mealId, guestId);
+      onClose();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRemoving(false);
+    }
+  }, [guestId, mealId, onRemoveGuest, onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8">
       <div className="w-full max-w-3xl rounded-3xl border border-white/60 bg-white/90 p-6 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-xl font-semibold text-[#2b1c12]">{guestName} dish preferences</h3>
-          <button
-            type="button"
-            className="rounded-full border border-[#d37655]/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#d37655] hover:bg-[#fbe0d4]"
-            onClick={onClose}
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-[#d37655]/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#d37655] hover:bg-[#fbe0d4] disabled:opacity-70"
+              onClick={handleRemoveFromMeal}
+              disabled={removing}
+            >
+              {removing ? 'Removing...' : 'Remove from meal'}
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-[#d37655]/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#d37655] hover:bg-[#fbe0d4]"
+              onClick={onClose}
+              disabled={removing}
+            >
+              Close
+            </button>
+          </div>
         </div>
         {loading && <div className="text-sm text-[#6f5440]">Loading dishes...</div>}
         {error && <div className="text-sm text-red-500">{error}</div>}
