@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { authenticateUserId } from "../../auth.js";
-import { addGuestToMeal, addMeal, getMealGuests, getMealsByUserId } from "../../db/queries/mealsQueries.js";
+import { addGuestToMeal, addMeal, getMealGuests, getMealRankings, getMealsByUserId } from "../../db/queries/mealsQueries.js";
 
 
 export async function getMealsByUserHandler(req: Request, res: Response) {
@@ -90,3 +90,24 @@ export async function addGuestToMealHandler(req: Request, res: Response) {
     res.status(400).json({ "message": `${error}` });
   }
 } 
+
+export async function getMenuHandler(req: Request, res: Response) {
+  const userId = authenticateUserId(req);
+  if (!userId) {
+    res.status(401).json({ "message": "Unauthorized" });
+    return;
+  }
+
+  try {
+    const mealId = req.params.mealId;
+    if (!mealId) {
+      throw new Error("Error with meal info.");
+    }
+    const menu = await getMealRankings(mealId);
+
+    res.status(200).json(menu.slice(0, 4));
+  } catch (error) {
+    console.error("Error fetching meal menu:", error);
+    res.status(500).json({ "message": "Internal Server Error" });
+  }
+}

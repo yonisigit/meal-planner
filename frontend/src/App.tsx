@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import AppNavBar from './components/AppNavBar';
@@ -65,11 +66,30 @@ export default App;
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { accessToken, isInitializing } = useAuth();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  useEffect(() => {
+    if (isInitializing) {
+      setShouldRedirect(false);
+      return;
+    }
+    // debounce redirects to avoid brief flicker when tokens refresh
+    if (!accessToken) {
+      const t = setTimeout(() => setShouldRedirect(true), 300);
+      return () => clearTimeout(t);
+    }
+    setShouldRedirect(false);
+  }, [accessToken, isInitializing]);
+
   if (isInitializing) {
     return null;
   }
-  if (!accessToken) {
+  if (!accessToken && shouldRedirect) {
     return <Navigate to="/login" replace />;
+  }
+  if (!accessToken) {
+    // still waiting on debounce; render nothing to avoid mounting protected UI
+    return null;
   }
   return <>{children}</>;
 };

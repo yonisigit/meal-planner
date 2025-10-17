@@ -19,6 +19,21 @@ type MealGuest = {
   name: string;
 };
 
+type SuggestedMenuItem = {
+  id: string;
+  dishId: string;
+  name?: string;
+  note?: string;
+  avgRank?: number | null;
+};
+
+type GuestDishRank = {
+  id: string;
+  dish_id: string;
+  rank: number;
+  name?: string;
+};
+
 type GuestOption = MealGuest;
 
 const MealsPage = () => {
@@ -27,9 +42,16 @@ const MealsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mealGuests, setMealGuests] = useState<Record<string, MealGuest[]>>({});
+  const [menuByMeal, setMenuByMeal] = useState<Record<string, SuggestedMenuItem[]>>({});
+  const [menuLoading, setMenuLoading] = useState<Record<string, boolean>>({});
+  const [menuError, setMenuError] = useState<Record<string, string | null>>({});
+  const [guestRanks, setGuestRanks] = useState<Record<string, GuestDishRank[]>>({});
+  const [guestRanksLoading, setGuestRanksLoading] = useState<Record<string, boolean>>({});
+  const [guestRanksError, setGuestRanksError] = useState<Record<string, string | null>>({});
   const [availableGuests, setAvailableGuests] = useState<GuestOption[]>([]);
   const [guestOptionsLoading, setGuestOptionsLoading] = useState(false);
   const [guestOptionsError, setGuestOptionsError] = useState<string | null>(null);
+  const [modalGuest, setModalGuest] = useState<{ id: string; name: string } | null>(null);
 
   const loadAvailableGuests = useCallback(async () => {
     setGuestOptionsLoading(true);
@@ -115,7 +137,49 @@ const MealsPage = () => {
       if (!silent) {
         toast.error('Failed to load meal guests.');
       }
+      throw err;  
+    }
+  }, []);
+
+  const loadSuggestedMenu = useCallback(async (mealId: string) => {
+    console.debug('[MealsPage] loadSuggestedMenu called for', mealId);
+    setMenuLoading((s) => ({ ...s, [mealId]: true }));
+    try {
+      const res: AxiosResponse<SuggestedMenuItem[]> = await api.get(`/meals/${mealId}/menu`);
+      console.debug('[MealsPage] loadSuggestedMenu response', res?.data);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const normalized = data.map((it: any) => ({
+        ...it,
+        avgRank: it.avgRank != null ? Number(it.avgRank) : null,
+      } as SuggestedMenuItem));
+      setMenuByMeal((prev) => ({ ...prev, [mealId]: normalized }));
+      setMenuError((s) => ({ ...s, [mealId]: null }));
+      return data;
+    } catch (err) {
+      console.error(err);
+      setMenuError((s) => ({ ...s, [mealId]: 'Failed to load suggested menu.' }));
       throw err;
+    } finally {
+      setMenuLoading((s) => ({ ...s, [mealId]: false }));
+    }
+  }, []);
+
+  const loadGuestDishRanks = useCallback(async (guestId: string) => {
+    console.debug('[MealsPage] loadGuestDishRanks called for', guestId);
+    setGuestRanksLoading((s) => ({ ...s, [guestId]: true }));
+    try {
+      const res: AxiosResponse<GuestDishRank[]> = await api.get(`/guests/${guestId}/dishes`);
+      console.debug('[MealsPage] loadGuestDishRanks response', res?.data);
+      const data = Array.isArray(res.data) ? res.data : [];
+      setGuestRanks((prev) => ({ ...prev, [guestId]: data }));
+      setGuestRanksError((s) => ({ ...s, [guestId]: null }));
+      return data;
+    } catch (err) {
+      console.error(err);
+      setGuestRanksError((s) => ({ ...s, [guestId]: 'Failed to load guest dish rankings.' }));
+      throw err;
+    } finally {
+      setGuestRanksLoading((s) => ({ ...s, [guestId]: false }));
     }
   }, []);
 
@@ -177,6 +241,22 @@ const MealsPage = () => {
               onAddGuest={handleAddGuestToMeal}
               guestOptionsLoading={guestOptionsLoading}
               guestOptionsError={guestOptionsError}
+              loadSuggestedMenu={loadSuggestedMenu}
+              loadGuestDishRanks={loadGuestDishRanks}
+              menuByMeal={menuByMeal}
+              menuLoading={menuLoading}
+              menuError={menuError}
+              guestRanks={guestRanks}
+              guestRanksLoading={guestRanksLoading}
+              guestRanksError={guestRanksError}
+              onOpenGuestModal={setModalGuest}
+            />
+          )}
+          {modalGuest && (
+            <GuestDishesModal
+              guestId={modalGuest.id}
+              guestName={modalGuest.name}
+              onClose={() => setModalGuest(null)}
             />
           )}
         </section>
@@ -192,6 +272,15 @@ const MealList = ({
   onAddGuest,
   guestOptionsLoading,
   guestOptionsError,
+  loadSuggestedMenu,
+  loadGuestDishRanks,
+  menuByMeal,
+  menuLoading,
+  menuError,
+  guestRanks,
+  guestRanksLoading,
+  guestRanksError,
+  onOpenGuestModal,
 }: {
   meals: Meal[];
   mealGuests: Record<string, MealGuest[]>;
@@ -199,6 +288,15 @@ const MealList = ({
   onAddGuest: (mealId: string, guestId: string) => Promise<void>;
   guestOptionsLoading: boolean;
   guestOptionsError: string | null;
+  loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuItem[]>;
+  loadGuestDishRanks: (guestId: string) => Promise<GuestDishRank[]>;
+  menuByMeal: Record<string, SuggestedMenuItem[]>;
+  menuLoading: Record<string, boolean>;
+  menuError: Record<string, string | null>;
+  guestRanks: Record<string, GuestDishRank[]>;
+  guestRanksLoading: Record<string, boolean>;
+  guestRanksError: Record<string, string | null>;
+  onOpenGuestModal: (g: { id: string; name: string } | null) => void;
 }) => {
   if (!meals || meals.length === 0) {
     return (
@@ -216,12 +314,22 @@ const MealList = ({
         {meals.map(meal => (
           <MealCard
             key={meal.id}
+            itemKey={meal.id}
             meal={meal}
             guests={mealGuests[meal.id] ?? []}
             availableGuests={availableGuests}
             onAddGuest={onAddGuest}
             guestOptionsLoading={guestOptionsLoading}
             guestOptionsError={guestOptionsError}
+            loadSuggestedMenu={loadSuggestedMenu}
+            loadGuestDishRanks={loadGuestDishRanks}
+            menuByMeal={menuByMeal}
+            menuLoading={menuLoading}
+            menuError={menuError}
+            guestRanks={guestRanks}
+            guestRanksLoading={guestRanksLoading}
+            guestRanksError={guestRanksError}
+            onOpenGuestModal={onOpenGuestModal}
           />
         ))}
       </ul>
@@ -236,6 +344,16 @@ const MealCard = ({
   onAddGuest,
   guestOptionsLoading,
   guestOptionsError,
+  loadSuggestedMenu,
+  loadGuestDishRanks,
+  menuByMeal,
+  menuLoading,
+  menuError,
+  guestRanks,
+  guestRanksLoading,
+  guestRanksError,
+  itemKey,
+  onOpenGuestModal,
 }: {
   meal: Meal;
   guests: MealGuest[];
@@ -243,14 +361,33 @@ const MealCard = ({
   onAddGuest: (mealId: string, guestId: string) => Promise<void>;
   guestOptionsLoading: boolean;
   guestOptionsError: string | null;
+  loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuItem[]>;
+  loadGuestDishRanks: (guestId: string) => Promise<GuestDishRank[]>;
+  menuByMeal: Record<string, SuggestedMenuItem[]>;
+  menuLoading: Record<string, boolean>;
+  menuError: Record<string, string | null>;
+  guestRanks: Record<string, GuestDishRank[]>;
+  guestRanksLoading: Record<string, boolean>;
+  guestRanksError: Record<string, string | null>;
+  itemKey: string;
+  onOpenGuestModal: (g: { id: string; name: string } | null) => void;
 }) => {
   const [selectedGuestId, setSelectedGuestId] = useState('');
   const [submittingGuest, setSubmittingGuest] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   const selectableGuests = useMemo(() => (
     availableGuests.filter((option) => !guests.some((existing) => existing.id === option.id))
   ), [availableGuests, guests]);
+
+  // defensive locals in case props are temporarily undefined during HMR
+  const menuItems = menuByMeal?.[meal.id] ?? [];
+  const isMenuLoading = menuLoading?.[meal.id] ?? false;
+  const menuLoadError = menuError?.[meal.id] ?? null;
+  const guestRanksFor = (id: string) => guestRanks?.[id] ?? [];
+  const isGuestRanksLoading = (id: string) => guestRanksLoading?.[id] ?? false;
+  const guestRanksLoadError = (id: string) => guestRanksError?.[id] ?? null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -271,24 +408,81 @@ const MealCard = ({
   };
 
   return (
-    <li className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
+    <li key={itemKey} className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="text-base font-semibold text-[#2b1c12]">{meal.name}</div>
           {meal.description && <div className="text-sm leading-relaxed text-[#6f5440]">{meal.description}</div>}
         </div>
         <div className="shrink-0 text-right text-xs uppercase tracking-[0.28em] text-[#a77044]">
-          {formatDisplayDate(meal.date)}
+          <div>{formatDisplayDate(meal.date)}</div>
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="text-xs text-[#6f5440] underline decoration-dotted"
+              onClick={async () => {
+                console.debug('[MealsPage] View suggested menu toggle', meal.id);
+                const willShow = !showMenu;
+                setShowMenu(willShow);
+                if (willShow) {
+                  try {
+                    await loadSuggestedMenu(meal.id);
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }
+              }}
+            >
+              {showMenu ? 'Hide suggested menu' : 'View suggested menu'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {showMenu && (
+        <div className="mt-4 rounded-xl border border-[#eee] bg-white p-3 text-sm text-[#3f2a1d]">
+          <div className="mb-2 font-semibold">Suggested menu</div>
+          {isMenuLoading ? (
+            <div className="text-xs text-[#6f5440]">Loading suggested menu...</div>
+          ) : menuLoadError ? (
+            <div className="text-xs text-red-500">{menuLoadError}</div>
+          ) : (
+            <ul className="space-y-1">
+              {menuItems.map((it) => (
+                <li key={it.id} className="text-sm">
+                  <span className="font-medium">{it.name ?? it.dishId}</span>
+                  {typeof it.avgRank === 'number' ? (
+                    <span className="ml-2 text-xs text-[#6f5440]">Average ranking: {it.avgRank.toFixed(1)}</span>
+                  ) : (
+                    <span className="ml-2 text-xs text-[#6f5440]">Average ranking: —</span>
+                  )}
+                  {it.note ? <span className="ml-2 text-xs text-[#6f5440]">— {it.note}</span> : null}
+                </li>
+              ))}
+              {menuItems.length === 0 && <li key={`no-menu-${meal.id}`} className="text-xs text-[#6f5440]">No suggested items.</li>}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="mt-5 rounded-2xl border border-[#f5d8b4]/60 bg-white/70 p-4">
         <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Guests</div>
         {guests.length > 0 ? (
-          <ul className="mt-3 flex flex-wrap gap-2 text-sm text-[#6f5440]">
+          <ul className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[#6f5440]">
             {guests.map((guest) => (
-              <li key={`${meal.id}-${guest.id}`} className="rounded-full bg-[#fbe0d4] px-3 py-1 text-[#5b3d2a]">
-                {guest.name}
+              <li key={`${meal.id}-${guest.id}`} className="inline-flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-[#fbe0d4] px-3 py-1 text-[#5b3d2a]"
+                    onClick={() => {
+                      console.debug('[MealsPage] guest clicked', guest.id, guest.name);
+                      if (onOpenGuestModal) onOpenGuestModal({ id: guest.id, name: guest.name });
+                    }}
+                  >
+                    {guest.name}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -305,8 +499,8 @@ const MealCard = ({
               className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
             >
               <option value="">Select a guest</option>
-              {selectableGuests.map((guest) => (
-                <option key={guest.id} value={guest.id}>{guest.name}</option>
+              {selectableGuests.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
           </div>
@@ -338,6 +532,92 @@ const MealCard = ({
 };
 
 export default MealsPage;
+
+function GuestDishesModal({ guestId, guestName, onClose }: { guestId: string; guestName: string; onClose: () => void }){
+  const { accessToken } = useAuth();
+  const [dishes, setDishes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load(){
+      setLoading(true);
+      try{
+        if (!accessToken) throw new Error('Missing access token');
+        const res = await api.get(`/guests/${encodeURIComponent(guestId)}/dishes`);
+        if (!mounted) return;
+        setDishes(res.data || []);
+        setError(null);
+      }catch(e:any){
+        setError(e?.response?.data?.message || 'Failed to load dishes');
+      }finally{
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, [accessToken, guestId]);
+
+  async function saveRank(dishId: string, rank: number | null){
+    try{
+      if (!accessToken) throw new Error('Missing access token');
+      await api.post(`/guests/${encodeURIComponent(guestId)}/dishes/${encodeURIComponent(dishId)}`, { rank });
+      toast.success('Rank saved');
+      const res = await api.get(`/guests/${encodeURIComponent(guestId)}/dishes`);
+      setDishes(res.data || []);
+    }catch(e:any){
+      toast.error(e?.response?.data?.message || 'Failed to save rank');
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8">
+      <div className="w-full max-w-3xl rounded-3xl border border-white/60 bg-white/90 p-6 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-xl font-semibold text-[#2b1c12]">{guestName} dish preferences</h3>
+          <button
+            type="button"
+            className="rounded-full border border-[#d37655]/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#d37655] hover:bg-[#fbe0d4]"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+        {loading && <div className="text-sm text-[#6f5440]">Loading dishes...</div>}
+        {error && <div className="text-sm text-red-500">{error}</div>}
+        {!loading && !error && (
+          <div
+            className="h-80 space-y-3 overflow-y-auto pr-3"
+            style={{ scrollbarGutter: 'stable both-edges' }}
+          >
+            {dishes.map(d => (
+              <div key={d.dishId} className="flex items-start justify-between gap-4 rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-4">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-base font-semibold text-[#2b1c12]" title={d.name}>{d.name}</div>
+                  {d.description && <div className="mt-1 overflow-hidden text-ellipsis text-sm leading-relaxed text-[#6f5440]" title={d.description}>{d.description}</div>}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Rank</label>
+                  <select
+                    value={d.rank ?? ''}
+                    onChange={e => saveRank(d.dishId, e.target.value ? Number(e.target.value) : null)}
+                    className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                  >
+                    <option value="">None</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const ListShell = ({ children, error = false }: { children: ReactNode; error?: boolean }) => {
   return (

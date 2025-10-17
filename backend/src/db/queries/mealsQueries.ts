@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, avg, eq, desc } from "drizzle-orm";
 
 import { db } from "../dbConfig.js";
-import { guestsTable, mealGuestsTable, mealsTable, type Meal } from "../schema.js";
+import { dishesRankTable, dishesTable, guestsTable, mealGuestsTable, mealsTable, type Meal } from "../schema.js";
 
 
 export async function getMealsByUserId(userId: string) {
@@ -43,4 +43,21 @@ export async function removeGuestFromMeal(mealId: string, guestId: string) {
     ))
     .returning();
   return result;
+}
+
+export async function getMealRankings(mealId: string) {
+  const dishRankings = await db
+    .select({
+      dishId: dishesTable.id,
+      name: dishesTable.name,
+      description: dishesTable.description,
+      avgRank: avg(dishesRankTable.rank)
+    }).from(mealGuestsTable)
+    .innerJoin(dishesRankTable, eq(mealGuestsTable.guestId, dishesRankTable.guestId))
+    .innerJoin(dishesTable, eq(dishesTable.id, dishesRankTable.dishId))
+    .where(eq(mealGuestsTable.mealId, mealId))
+    .groupBy(dishesTable.id)
+    .orderBy(desc(avg(dishesRankTable.rank)));
+
+  return dishRankings;
 }
