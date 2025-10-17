@@ -48,14 +48,14 @@ const DishesPage = () => {
     <div className="relative min-h-screen overflow-hidden bg-[#fdf4e3] text-[#3f2a1d]">
       <div className="pointer-events-none absolute -top-32 -right-20 h-96 w-96 rounded-full bg-[#fde4c6] opacity-60 blur-3xl"></div>
       <div className="pointer-events-none absolute top-1/2 -left-24 h-96 w-96 -translate-y-1/2 rounded-full bg-[#f4978e]/70 opacity-30 blur-3xl"></div>
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-24 lg:px-12">
+  <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-16 sm:px-6 sm:py-20 lg:px-12 lg:py-24">
         <header className="mb-10 max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">Your pantry of favorites</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#2b1c12]">Keep your best dishes ready to share.</h1>
-          <p className="mt-3 text-sm text-[#6f5440]">Document the meals you love to cook, along with the little details that make them memorable. When it is time to host, your ideas are already waiting.</p>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[#a77044] sm:text-xs sm:tracking-[0.35em]">Your pantry of favorites</p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[#2b1c12] sm:text-4xl">Keep your best dishes ready to share.</h1>
+          <p className="mt-3 text-sm text-[#6f5440] sm:text-base">Document the meals you love to cook, along with the little details that make them memorable. When it is time to host, your ideas are already waiting.</p>
         </header>
 
-        <section className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
+        <section className="rounded-3xl border border-white/60 bg-white/70 p-5 shadow-glow backdrop-blur sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-[#2b1c12]">Dish library</h2>
@@ -131,22 +131,24 @@ const DishList = ({ dishes, loading, error }: { dishes: Dish[]; loading: boolean
   return (
     <ListShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap gap-2">
-          {orderedCategories.map((category) => {
-            const isActive = category === activeCategory;
-            const count = grouped[category]?.length ?? 0;
-            return (
-              <button
-                key={category}
-                type="button"
-                className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] transition ${isActive ? 'border-[#d37655] bg-[#d37655] text-white shadow-[0_8px_20px_-10px_rgba(211,118,85,0.7)]' : 'border-[#f5d8b4] text-[#a77044] hover:border-[#d37655] hover:text-[#d37655]'}`}
-                onClick={() => setSelectedCategory(category)}
-              >
-                {CATEGORY_LABELS[category] ?? category.replace(/^[a-z]/, (c) => c.toUpperCase())}
-                <span className="ml-2 text-[0.65rem] font-normal tracking-[0.2em]">{count}</span>
-              </button>
-            );
-          })}
+        <div className="overflow-x-auto pb-2">
+          <div className="flex min-w-max gap-2 sm:flex-wrap sm:min-w-0">
+            {orderedCategories.map((category) => {
+              const isActive = category === activeCategory;
+              const count = grouped[category]?.length ?? 0;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] transition ${isActive ? 'border-[#d37655] bg-[#d37655] text-white shadow-[0_8px_20px_-10px_rgba(211,118,85,0.7)]' : 'border-[#f5d8b4] text-[#a77044] hover:border-[#d37655] hover:text-[#d37655]'}`}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {CATEGORY_LABELS[category] ?? category.replace(/^[a-z]/, (c) => c.toUpperCase())}
+                  <span className="ml-2 text-[0.65rem] font-normal tracking-[0.2em]">{count}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {activeCategory && visibleDishes.length > 0 ? (
@@ -239,14 +241,14 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
       </div>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8"
           onClick={() => {
             if (submitting) return;
             closeModal();
           }}
         >
           <div
-            className="w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-6 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur"
+            className="w-full max-w-md rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl sm:p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <form className="space-y-3" onSubmit={handleSubmit}>
@@ -321,7 +323,7 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
 
 const ListShell = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="mt-8 min-h-[280px] rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur">
+    <div className="mt-8 min-h-[220px] rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur sm:min-h-[280px]">
       {children}
     </div>
   );

@@ -51,14 +51,14 @@ const GuestsPage = () => {
     <div className="relative min-h-screen overflow-hidden bg-[#fdf4e3] text-[#3f2a1d]">
       <div className="pointer-events-none absolute -top-36 left-[-80px] h-96 w-96 rounded-full bg-[#fde4c6] opacity-60 blur-3xl"></div>
       <div className="pointer-events-none absolute top-2/3 right-[-120px] h-96 w-96 -translate-y-1/2 rounded-full bg-[#d88c9a]/70 opacity-35 blur-3xl"></div>
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-24 lg:px-12">
+  <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-16 sm:px-6 sm:py-20 lg:px-12 lg:py-24">
         <header className="mb-10 max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">Guest profiles</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#2b1c12]">Know what every guest loves before they arrive.</h1>
-          <p className="mt-3 text-sm text-[#6f5440]">Capture who you are inviting and record the dishes that spark conversation. Turn casual dinners into thoughtful gatherings.</p>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[#a77044] sm:text-xs sm:tracking-[0.35em]">Guest profiles</p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[#2b1c12] sm:text-4xl">Know what every guest loves before they arrive.</h1>
+          <p className="mt-3 text-sm text-[#6f5440] sm:text-base">Capture who you are inviting and record the dishes that spark conversation. Turn casual dinners into thoughtful gatherings.</p>
         </header>
 
-        <section className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
+        <section className="rounded-3xl border border-white/60 bg-white/70 p-5 shadow-glow backdrop-blur sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-[#2b1c12]">Guest roster</h2>
@@ -167,8 +167,8 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8">
-      <div className="w-full max-w-3xl rounded-3xl border border-white/60 bg-white/90 p-6 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8">
+      <div className="w-full max-w-3xl rounded-2xl border border-white/60 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-xl font-semibold text-[#2b1c12]">{guest.name} dish preferences</h3>
           <button
@@ -183,7 +183,7 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
         {error && <div className="text-sm text-red-500">{error}</div>}
         {!loading && !error && (
           <div
-            className="h-80 space-y-3 overflow-y-auto pr-3"
+            className="max-h-[60vh] space-y-3 overflow-y-auto pr-3"
             style={{ scrollbarGutter: 'stable both-edges' }}
           >
             {dishes.map(d => (
@@ -278,14 +278,14 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
       </div>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8"
           onClick={() => {
             if (submitting) return;
             closeModal();
           }}
         >
           <div
-            className="w-full max-w-sm rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur"
+            className="w-full max-w-sm rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
             <form className="space-y-3" onSubmit={handleSubmit}>
@@ -337,7 +337,7 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
 const ListShell = ({ children, error = false }: { children: ReactNode; error?: boolean }) => {
   return (
     <div
-      className={`mt-8 min-h-[320px] rounded-3xl border border-white/60 bg-white/60 px-1 py-2 text-sm ${error ? 'text-red-500' : 'text-[#6f5440]'} backdrop-blur`}
+      className={`mt-8 min-h-[240px] rounded-3xl border border-white/60 bg-white/60 px-1 py-2 text-sm sm:min-h-[320px] ${error ? 'text-red-500' : 'text-[#6f5440]'} backdrop-blur`}
       style={{ scrollbarGutter: 'stable both-edges' }}
     >
       {children}

@@ -286,14 +286,14 @@ const MealsPage = () => {
     <div className="relative min-h-screen overflow-hidden bg-[#fdf4e3] text-[#3f2a1d]">
       <div className="pointer-events-none absolute -top-32 right-[-120px] h-96 w-96 rounded-full bg-[#f9c784] opacity-35 blur-3xl"></div>
       <div className="pointer-events-none absolute bottom-[-180px] left-[-100px] h-96 w-96 rounded-full bg-[#d88c9a] opacity-30 blur-3xl"></div>
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-24 lg:px-12">
+  <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-16 sm:px-6 sm:py-20 lg:px-12 lg:py-24">
         <header className="mb-12 max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">Meal plans</p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[#2b1c12]">Design gatherings that feel effortless.</h1>
-          <p className="mt-3 text-sm text-[#6f5440]">Pair the perfect guests with the dishes they adore. Add meals, jot down the essentials, and see exactly who is joining each table.</p>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[#a77044] sm:text-xs sm:tracking-[0.35em]">Meal plans</p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[#2b1c12] sm:text-4xl">Design gatherings that feel effortless.</h1>
+          <p className="mt-3 text-sm text-[#6f5440] sm:text-base">Pair the perfect guests with the dishes they adore. Add meals, jot down the essentials, and see exactly who is joining each table.</p>
         </header>
 
-        <section className="rounded-3xl border border-white/60 bg-white/70 p-8 shadow-glow backdrop-blur">
+        <section className="rounded-3xl border border-white/60 bg-white/70 p-5 shadow-glow backdrop-blur sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold text-[#2b1c12]">Upcoming meals</h2>
@@ -706,8 +706,8 @@ function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }
   }, [guestId, mealId, onRemoveGuest, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8">
-      <div className="w-full max-w-3xl rounded-3xl border border-white/60 bg-white/90 p-6 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8">
+      <div className="w-full max-w-3xl rounded-2xl border border-white/60 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="text-xl font-semibold text-[#2b1c12]">{guestName} dish preferences</h3>
           <div className="flex items-center gap-2">
@@ -733,7 +733,7 @@ function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }
         {error && <div className="text-sm text-red-500">{error}</div>}
         {!loading && !error && (
           <div
-            className="h-80 space-y-3 overflow-y-auto pr-3"
+            className="max-h-[60vh] space-y-3 overflow-y-auto pr-3"
             style={{ scrollbarGutter: 'stable both-edges' }}
           >
             {dishes.map(d => (
@@ -776,7 +776,7 @@ function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }
 
 const ListShell = ({ children, error = false }: { children: ReactNode; error?: boolean }) => {
   return (
-    <div className={`mt-8 min-h-[320px] rounded-2xl border border-white/60 bg-white/60 p-5 text-sm ${error ? 'text-red-500' : 'text-[#6f5440]'} backdrop-blur`}>
+    <div className={`mt-8 min-h-[240px] rounded-2xl border border-white/60 bg-white/60 p-4 text-sm sm:min-h-[320px] sm:p-5 ${error ? 'text-red-500' : 'text-[#6f5440]'} backdrop-blur`}>
       {children}
     </div>
   );
@@ -845,14 +845,14 @@ const CreateMealButton = ({ onCreated }: { onCreated: () => Promise<void> }) => 
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8"
           onClick={() => {
             if (submitting) return;
             closeModal();
           }}
         >
           <div
-            className="w-full max-w-sm rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur"
+            className="w-full max-w-sm rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl"
             onClick={(event) => event.stopPropagation()}
           >
             <form className="space-y-3" onSubmit={handleSubmit}>
