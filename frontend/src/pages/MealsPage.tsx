@@ -488,7 +488,7 @@ const MealCard = ({
           <div className="mt-2 flex items-center justify-end gap-2">
             <button
               type="button"
-              className="text-xs text-[#6f5440] underline decoration-dotted"
+              className={`inline-flex items-center gap-2 rounded-full border border-[#d37655]/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.35em] transition focus:outline-none focus:ring-2 focus:ring-[#d37655]/40 ${showMenu ? 'bg-[#d37655] text-white shadow-[0_10px_25px_-15px_rgba(211,118,85,0.8)]' : 'bg-[#fbe0d4]/85 text-[#a15535] hover:-translate-y-0.5 hover:bg-[#fbe0d4]'}`}
               onClick={async () => {
                 console.debug('[MealsPage] View suggested menu toggle', meal.id);
                 const willShow = !showMenu;
@@ -502,7 +502,8 @@ const MealCard = ({
                 }
               }}
             >
-              {showMenu ? 'Hide suggested menu' : 'View suggested menu'}
+              <span className="text-[0.7rem] font-bold">MENU</span>
+              <span>{showMenu ? 'Hide suggestions' : 'View suggestions'}</span>
             </button>
           </div>
         </div>
