@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
@@ -119,6 +119,8 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
   const [dishes, setDishes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingRanks, setPendingRanks] = useState<Record<string, string>>({});
+  const [savingRanks, setSavingRanks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -143,12 +145,24 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
   async function saveRank(dishId: string, rank: number | null){
     try{
       if (!accessToken) throw new Error('Missing access token');
+      setSavingRanks((prev) => ({ ...prev, [dishId]: true }));
       await api.post(`/guests/${encodeURIComponent(guest.id)}/dishes/${encodeURIComponent(dishId)}`, { rank });
       toast.success('Rank saved');
       const res = await api.get(`/guests/${encodeURIComponent(guest.id)}/dishes`);
       setDishes(res.data || []);
     }catch(e:any){
       toast.error(e?.response?.data?.message || 'Failed to save rank');
+    }finally{
+      setSavingRanks((prev) => {
+        const next = { ...prev };
+        delete next[dishId];
+        return next;
+      });
+      setPendingRanks((prev) => {
+        const next = { ...prev };
+        delete next[dishId];
+        return next;
+      });
     }
   }
 
@@ -181,15 +195,25 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
                 <div className="flex shrink-0 items-center gap-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Rank</label>
                   <select
-                    value={d.rank ?? ''}
-                    onChange={e => saveRank(d.dishId, e.target.value ? Number(e.target.value) : null)}
-                    className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                    value={Object.prototype.hasOwnProperty.call(pendingRanks, d.dishId)
+                      ? pendingRanks[d.dishId]
+                      : (d.rank != null ? String(d.rank) : '')}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setPendingRanks((prev) => ({ ...prev, [d.dishId]: value }));
+                      void saveRank(d.dishId, value ? Number(value) : null);
+                    }}
+                    disabled={savingRanks[d.dishId] === true}
+                    className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50 disabled:opacity-60"
                   >
                     <option value="">None</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
                   </select>
+                  {savingRanks[d.dishId] ? (
+                    <span className="text-[0.65rem] uppercase tracking-[0.3em] text-[#a77044]">Saving…</span>
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -208,19 +232,30 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  async function submit() {
-    if (!name) return toast.error('Please enter a guest name');
+  const resetForm = () => {
+    setName('');
+  };
+
+  const closeModal = () => {
+    resetForm();
+    setOpen(false);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!name.trim()) {
+      toast.error('Please enter a guest name');
+      return;
+    }
+    if (!accessToken) {
+      toast.error('Missing access token. Please login again.');
+      return;
+    }
     setSubmitting(true);
     try {
-      if (!accessToken) {
-        toast.error('Missing access token. Please login again.');
-        setSubmitting(false);
-        return;
-      }
-      await api.post('/guests', { name });
+      await api.post('/guests', { name: name.trim() });
       toast.success('Guest added');
-      setName('');
-      setOpen(false);
+      closeModal();
       await onAdded();
     } catch (e: any) {
       const msg = e?.response?.data?.message || 'Failed to add guest';
@@ -228,11 +263,11 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   return (
-    <div className="w-full max-w-xs">
-      {!open ? (
+    <>
+      <div className="w-full max-w-xs">
         <button
           type="button"
           className="inline-flex w-full items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white shadow-lg shadow-[#d37655]/30 transition hover:-translate-y-0.5"
@@ -240,36 +275,62 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
         >
           Add guest
         </button>
-      ) : (
-        <div className="w-full rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_20px_45px_-25px_rgba(167,112,68,0.5)]">
-          <div className="space-y-3">
-            <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Guest name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-            />
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5"
-                onClick={() => submit()}
-                disabled={submitting}
-              >
-                {submitting ? 'Adding...' : 'Save guest'}
-              </button>
-              <button
-                type="button"
-                className="text-sm font-medium text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655]"
-                onClick={() => { setOpen(false); setName(''); }}
-              >
-                Cancel
-              </button>
-            </div>
+      </div>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8"
+          onClick={() => {
+            if (submitting) return;
+            closeModal();
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-[#a77044]">Add guest</h3>
+                <button
+                  type="button"
+                  className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] underline decoration-dotted disabled:opacity-60"
+                  onClick={() => closeModal()}
+                  disabled={submitting}
+                >
+                  Close
+                </button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="guest-name">Guest name</label>
+                <input
+                  id="guest-name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Adding...' : 'Save guest'}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm font-medium text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655] disabled:opacity-60"
+                  onClick={() => closeModal()}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

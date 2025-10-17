@@ -644,6 +644,8 @@ function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [pendingRanks, setPendingRanks] = useState<Record<string, string>>({});
+  const [savingRanks, setSavingRanks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -668,12 +670,24 @@ function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }
   async function saveRank(dishId: string, rank: number | null){
     try{
       if (!accessToken) throw new Error('Missing access token');
+      setSavingRanks((prev) => ({ ...prev, [dishId]: true }));
       await api.post(`/guests/${encodeURIComponent(guestId)}/dishes/${encodeURIComponent(dishId)}`, { rank });
       toast.success('Rank saved');
       const res = await api.get(`/guests/${encodeURIComponent(guestId)}/dishes`);
       setDishes(res.data || []);
     }catch(e:any){
       toast.error(e?.response?.data?.message || 'Failed to save rank');
+    }finally{
+      setSavingRanks((prev) => {
+        const next = { ...prev };
+        delete next[dishId];
+        return next;
+      });
+      setPendingRanks((prev) => {
+        const next = { ...prev };
+        delete next[dishId];
+        return next;
+      });
     }
   }
 
@@ -730,15 +744,25 @@ function GuestDishesModal({ guestId, guestName, mealId, onRemoveGuest, onClose }
                 <div className="flex shrink-0 items-center gap-2">
                   <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Rank</label>
                   <select
-                    value={d.rank ?? ''}
-                    onChange={e => saveRank(d.dishId, e.target.value ? Number(e.target.value) : null)}
-                    className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                    value={Object.prototype.hasOwnProperty.call(pendingRanks, d.dishId)
+                      ? pendingRanks[d.dishId]
+                      : (d.rank != null ? String(d.rank) : '')}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setPendingRanks((prev) => ({ ...prev, [d.dishId]: value }));
+                      void saveRank(d.dishId, value ? Number(value) : null);
+                    }}
+                    disabled={savingRanks[d.dishId] === true}
+                    className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50 disabled:opacity-60"
                   >
                     <option value="">None</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
                   </select>
+                  {savingRanks[d.dishId] ? (
+                    <span className="text-[0.65rem] uppercase tracking-[0.3em] text-[#a77044]">Saving…</span>
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -772,6 +796,11 @@ const CreateMealButton = ({ onCreated }: { onCreated: () => Promise<void> }) => 
     setFormError(null);
   };
 
+  const closeModal = () => {
+    resetForm();
+    setOpen(false);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
@@ -793,8 +822,7 @@ const CreateMealButton = ({ onCreated }: { onCreated: () => Promise<void> }) => 
         date
       });
       toast.success('Meal created');
-      resetForm();
-      setOpen(false);
+      closeModal();
       await onCreated();
     } catch (err: any) {
       const message = err?.response?.data?.message || 'Failed to create meal';
@@ -805,8 +833,8 @@ const CreateMealButton = ({ onCreated }: { onCreated: () => Promise<void> }) => 
     }
   };
 
-  if (!open) {
-    return (
+  return (
+    <>
       <button
         type="button"
         className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white shadow-lg shadow-[#d37655]/30 transition hover:-translate-y-0.5"
@@ -814,64 +842,81 @@ const CreateMealButton = ({ onCreated }: { onCreated: () => Promise<void> }) => 
       >
         New meal
       </button>
-    );
-  }
-
-  return (
-    <div className="w-full max-w-sm rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
-      <form className="space-y-3" onSubmit={handleSubmit}>
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="meal-name">Meal name</label>
-          <input
-            id="meal-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="meal-date">Meal date</label>
-          <input
-            id="meal-date"
-            type="date"
-            value={date}
-            onChange={(event) => setDate(event.target.value)}
-            className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="meal-description">Description</label>
-          <textarea
-            id="meal-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
-            disabled={submitting}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-4 py-8"
+          onClick={() => {
+            if (submitting) return;
+            closeModal();
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur"
+            onClick={(event) => event.stopPropagation()}
           >
-            {submitting ? 'Creating...' : 'Save meal'}
-          </button>
-          <button
-            type="button"
-            className="text-sm font-semibold text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655]"
-            onClick={() => {
-              resetForm();
-              setOpen(false);
-            }}
-            disabled={submitting}
-          >
-            Cancel
-          </button>
+            <form className="space-y-3" onSubmit={handleSubmit}>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="meal-name">Meal name</label>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] underline decoration-dotted disabled:opacity-60"
+                    onClick={() => closeModal()}
+                    disabled={submitting}
+                  >
+                    Close
+                  </button>
+                </div>
+                <input
+                  id="meal-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="meal-date">Meal date</label>
+                <input
+                  id="meal-date"
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="meal-description">Description</label>
+                <textarea
+                  id="meal-description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  rows={3}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Creating...' : 'Save meal'}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655] disabled:opacity-60"
+                  onClick={() => closeModal()}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+              </div>
+              {formError && <p className="text-xs text-red-500">{formError}</p>}
+            </form>
+          </div>
         </div>
-        {formError && <p className="text-xs text-red-500">{formError}</p>}
-      </form>
-    </div>
+      )}
+    </>
   );
 };
 
