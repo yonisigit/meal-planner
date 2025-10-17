@@ -345,13 +345,9 @@ const MealCard = ({
   guestOptionsLoading,
   guestOptionsError,
   loadSuggestedMenu,
-  loadGuestDishRanks,
   menuByMeal,
   menuLoading,
   menuError,
-  guestRanks,
-  guestRanksLoading,
-  guestRanksError,
   itemKey,
   onOpenGuestModal,
 }: {
@@ -385,9 +381,6 @@ const MealCard = ({
   const menuItems = menuByMeal?.[meal.id] ?? [];
   const isMenuLoading = menuLoading?.[meal.id] ?? false;
   const menuLoadError = menuError?.[meal.id] ?? null;
-  const guestRanksFor = (id: string) => guestRanks?.[id] ?? [];
-  const isGuestRanksLoading = (id: string) => guestRanksLoading?.[id] ?? false;
-  const guestRanksLoadError = (id: string) => guestRanksError?.[id] ?? null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
