@@ -5,29 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1760039266253,
-      "tag": "0000_tiresome_aqueduct",
+      "when": 1760693336996,
+      "tag": "0000_salty_firebird",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1760287833030,
-      "tag": "0001_thankful_marvel_apes",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1760593571089,
-      "tag": "0002_eager_warpath",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1763356800000,
-      "tag": "0003_seed_mock_data",
+      "when": 1760693337996,
+      "tag": "0001_seed_mock_data",
       "breakpoints": true
     }
   ]

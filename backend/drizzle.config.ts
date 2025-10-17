@@ -1,5 +1,5 @@
 import "dotenv/config"; 
-import env from "./dist/config/validate_env.js" // import from dist bc the config file is run by drizzle in a seperate process and expects js
+import env from "./dist/config/validateEnv.js" // import from dist bc the config file is run by drizzle in a seperate process and expects js
 import type { Config } from "drizzle-kit";
 
 export default {

@@ -5,7 +5,6 @@ export const usersTable = sqliteTable("users", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
@@ -26,6 +25,7 @@ export const dishesTable = sqliteTable("dishes", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
+  category: text("category", {enum: ["main", "side", "dessert", "other"]}).notNull().default("other"),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),

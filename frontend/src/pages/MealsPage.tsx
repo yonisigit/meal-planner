@@ -25,7 +25,71 @@ type SuggestedMenuItem = {
   name?: string;
   note?: string;
   avgRank?: number | null;
+  category?: string;
+  description?: string;
 };
+
+const MENU_CATEGORIES = ['main', 'side', 'dessert', 'other'] as const;
+type MenuCategory = typeof MENU_CATEGORIES[number];
+
+const MENU_CATEGORY_LABELS: Record<MenuCategory, string> = {
+  main: 'Main dishes',
+  side: 'Side dishes',
+  dessert: 'Desserts',
+  other: 'Other',
+};
+
+type SuggestedMenuByCategory = Record<MenuCategory, SuggestedMenuItem[]>;
+
+type SuggestedMenuResponse = Partial<Record<MenuCategory, SuggestedMenuItem[]>>;
+
+const groupMenuItemsByCategory = (input: SuggestedMenuResponse | SuggestedMenuItem[] | undefined): SuggestedMenuByCategory => {
+  const grouped = createEmptyMenuByCategory();
+  if (!input) {
+    return grouped;
+  }
+
+  if (Array.isArray(input)) {
+    input.forEach((item) => {
+      const fallbackCategory: MenuCategory = 'other';
+      const normalizedCategory = typeof item.category === 'string' ? item.category.toLowerCase() : '';
+      const resolvedCategory = MENU_CATEGORIES.find((category) => category === normalizedCategory) ?? fallbackCategory;
+      grouped[resolvedCategory].push({
+        ...item,
+        avgRank: item.avgRank != null ? Number(item.avgRank) : null,
+      });
+    });
+    return grouped;
+  }
+
+  Object.entries(input).forEach(([rawKey, value]) => {
+    if (!Array.isArray(value)) {
+      return;
+    }
+    const fallbackCategory: MenuCategory = 'other';
+    const normalizedKey = rawKey.toLowerCase();
+    const matchedCategory = MENU_CATEGORIES.find((category) => category === normalizedKey) ?? fallbackCategory;
+    grouped[matchedCategory] = value.map((item) => ({
+      ...item,
+      avgRank: item.avgRank != null ? Number(item.avgRank) : null,
+    }));
+  });
+
+  MENU_CATEGORIES.forEach((category) => {
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+  });
+
+  return grouped;
+};
+
+const createEmptyMenuByCategory = (): SuggestedMenuByCategory => ({
+  main: [],
+  side: [],
+  dessert: [],
+  other: [],
+});
 
 type GuestDishRank = {
   id: string;
@@ -42,7 +106,7 @@ const MealsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mealGuests, setMealGuests] = useState<Record<string, MealGuest[]>>({});
-  const [menuByMeal, setMenuByMeal] = useState<Record<string, SuggestedMenuItem[]>>({});
+  const [menuByMeal, setMenuByMeal] = useState<Record<string, SuggestedMenuByCategory>>({});
   const [menuLoading, setMenuLoading] = useState<Record<string, boolean>>({});
   const [menuError, setMenuError] = useState<Record<string, string | null>>({});
   const [guestRanks, setGuestRanks] = useState<Record<string, GuestDishRank[]>>({});
@@ -145,16 +209,13 @@ const MealsPage = () => {
     console.debug('[MealsPage] loadSuggestedMenu called for', mealId);
     setMenuLoading((s) => ({ ...s, [mealId]: true }));
     try {
-      const res: AxiosResponse<SuggestedMenuItem[]> = await api.get(`/meals/${mealId}/menu`);
+      const res: AxiosResponse<SuggestedMenuResponse | SuggestedMenuItem[] | undefined> = await api.get(`/meals/${mealId}/menu`);
       console.debug('[MealsPage] loadSuggestedMenu response', res?.data);
-      const data = Array.isArray(res.data) ? res.data : [];
-      const normalized = data.map((it: any) => ({
-        ...it,
-        avgRank: it.avgRank != null ? Number(it.avgRank) : null,
-      } as SuggestedMenuItem));
+      const normalized = groupMenuItemsByCategory(res?.data);
+
       setMenuByMeal((prev) => ({ ...prev, [mealId]: normalized }));
       setMenuError((s) => ({ ...s, [mealId]: null }));
-      return data;
+      return normalized;
     } catch (err) {
       console.error(err);
       setMenuError((s) => ({ ...s, [mealId]: 'Failed to load suggested menu.' }));
@@ -302,9 +363,9 @@ const MealList = ({
   onAddGuest: (mealId: string, guestId: string) => Promise<void>;
   guestOptionsLoading: boolean;
   guestOptionsError: string | null;
-  loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuItem[]>;
+  loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuByCategory>;
   loadGuestDishRanks: (guestId: string) => Promise<GuestDishRank[]>;
-  menuByMeal: Record<string, SuggestedMenuItem[]>;
+  menuByMeal: Record<string, SuggestedMenuByCategory>;
   menuLoading: Record<string, boolean>;
   menuError: Record<string, string | null>;
   guestRanks: Record<string, GuestDishRank[]>;
@@ -371,9 +432,9 @@ const MealCard = ({
   onAddGuest: (mealId: string, guestId: string) => Promise<void>;
   guestOptionsLoading: boolean;
   guestOptionsError: string | null;
-  loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuItem[]>;
+  loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuByCategory>;
   loadGuestDishRanks: (guestId: string) => Promise<GuestDishRank[]>;
-  menuByMeal: Record<string, SuggestedMenuItem[]>;
+  menuByMeal: Record<string, SuggestedMenuByCategory>;
   menuLoading: Record<string, boolean>;
   menuError: Record<string, string | null>;
   guestRanks: Record<string, GuestDishRank[]>;
@@ -392,9 +453,10 @@ const MealCard = ({
   ), [availableGuests, guests]);
 
   // defensive locals in case props are temporarily undefined during HMR
-  const menuItems = menuByMeal?.[meal.id] ?? [];
+  const menuItems = menuByMeal?.[meal.id] ?? createEmptyMenuByCategory();
   const isMenuLoading = menuLoading?.[meal.id] ?? false;
   const menuLoadError = menuError?.[meal.id] ?? null;
+  const hasMenuItems = MENU_CATEGORIES.some((category) => menuItems[category]?.length > 0);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -469,21 +531,35 @@ const MealCard = ({
             <div className="text-xs text-[#6f5440]">Loading suggested menu...</div>
           ) : menuLoadError ? (
             <div className="text-xs text-red-500">{menuLoadError}</div>
+          ) : hasMenuItems ? (
+            <div className="space-y-3">
+              {MENU_CATEGORIES.map((category) => {
+                const categoryItems = menuItems?.[category] ?? [];
+                if (categoryItems.length === 0) return null;
+                return (
+                  <div key={`${meal.id}-${category}`}>
+                    <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">
+                      {MENU_CATEGORY_LABELS[category]}
+                    </div>
+                    <ul className="mt-1 space-y-1">
+                      {categoryItems.map((it) => (
+                        <li key={it.id ?? `${category}-${it.dishId}`} className="text-sm">
+                          <span className="font-medium">{it.name ?? it.dishId}</span>
+                          {typeof it.avgRank === 'number' ? (
+                            <span className="ml-2 text-xs text-[#6f5440]">Avg: {it.avgRank.toFixed(1)}</span>
+                          ) : (
+                            <span className="ml-2 text-xs text-[#6f5440]">Avg: —</span>
+                          )}
+                          {it.note ? <span className="ml-2 text-xs text-[#6f5440]">— {it.note}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
           ) : (
-            <ul className="space-y-1">
-              {menuItems.map((it) => (
-                <li key={it.id} className="text-sm">
-                  <span className="font-medium">{it.name ?? it.dishId}</span>
-                  {typeof it.avgRank === 'number' ? (
-                    <span className="ml-2 text-xs text-[#6f5440]">Avg: {it.avgRank.toFixed(1)}</span>
-                  ) : (
-                    <span className="ml-2 text-xs text-[#6f5440]">Avg: —</span>
-                  )}
-                  {it.note ? <span className="ml-2 text-xs text-[#6f5440]">— {it.note}</span> : null}
-                </li>
-              ))}
-              {menuItems.length === 0 && <li key={`no-menu-${meal.id}`} className="text-xs text-[#6f5440]">No suggested items.</li>}
-            </ul>
+            <div className="text-xs text-[#6f5440]">No suggested items.</div>
           )}
         </div>
       )}

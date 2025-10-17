@@ -1,6 +1,6 @@
 
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -9,9 +9,12 @@ type Dish = {
   id: string;
   name: string;
   description?: string;
+  category?: 'main' | 'side' | 'dessert' | 'other';
   created_at?: string;
   updated_at?: string;
 };
+
+type DishCategory = NonNullable<Dish['category']>;
 
 const DishesPage = () => {
   const { accessToken } = useAuth();
@@ -83,24 +86,97 @@ const DishList = ({ dishes, loading, error }: { dishes: Dish[]; loading: boolean
     );
   }
 
+  const CATEGORY_ORDER: DishCategory[] = ['main', 'side', 'dessert', 'other'];
+  const CATEGORY_LABELS: Record<DishCategory, string> = {
+    main: 'Main dishes',
+    side: 'Side dishes',
+    dessert: 'Desserts',
+    other: 'Other favorites',
+  };
+
+  const { grouped, orderedCategories } = useMemo(() => {
+    const buckets = dishes.reduce<Record<DishCategory, Dish[]>>((acc, dish) => {
+      const category = (dish.category ?? 'other') as DishCategory;
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(dish);
+      return acc;
+    }, {} as Record<DishCategory, Dish[]>);
+
+    const extras = (Object.keys(buckets) as DishCategory[]).filter((key) => !CATEGORY_ORDER.includes(key));
+    const categories = [...CATEGORY_ORDER, ...extras]
+      .filter((category, index, array) => array.indexOf(category) === index && (buckets[category]?.length ?? 0) > 0) as DishCategory[];
+
+    categories.forEach((category) => {
+      buckets[category] = buckets[category].slice().sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    return { grouped: buckets, orderedCategories: categories };
+  }, [dishes]);
+
+  const [selectedCategory, setSelectedCategory] = useState<DishCategory | null>(orderedCategories[0] ?? null);
+
+  useEffect(() => {
+    if (orderedCategories.length === 0) {
+      if (selectedCategory !== null) setSelectedCategory(null);
+      return;
+    }
+    if (!selectedCategory || !orderedCategories.includes(selectedCategory)) {
+      setSelectedCategory(orderedCategories[0]);
+    }
+  }, [orderedCategories, selectedCategory]);
+
+  const activeCategory: DishCategory | null = selectedCategory && grouped[selectedCategory] ? selectedCategory : orderedCategories[0] ?? null;
+  const visibleDishes = activeCategory ? grouped[activeCategory] ?? [] : [];
+
   return (
     <ListShell>
-      <ul className="space-y-3">
-        {dishes.map((dish) => (
-          <li key={dish.id} className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)] transition duration-150 hover:-translate-y-0.5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="text-base font-semibold text-[#2b1c12]">{dish.name}</div>
-                {dish.description && <div className="text-sm leading-relaxed text-[#6f5440]">{dish.description}</div>}
-              </div>
-              <div className="flex flex-col items-end gap-2 text-xs uppercase tracking-widest text-[#a77044]/90">
-                {dish.created_at && <span>Added {new Date(dish.created_at).toLocaleDateString()}</span>}
-                {dish.updated_at && <span>Updated {new Date(dish.updated_at).toLocaleDateString()}</span>}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="space-y-6">
+        <div className="flex flex-wrap gap-2">
+          {orderedCategories.map((category) => {
+            const isActive = category === activeCategory;
+            const count = grouped[category]?.length ?? 0;
+            return (
+              <button
+                key={category}
+                type="button"
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] transition ${isActive ? 'border-[#d37655] bg-[#d37655] text-white shadow-[0_8px_20px_-10px_rgba(211,118,85,0.7)]' : 'border-[#f5d8b4] text-[#a77044] hover:border-[#d37655] hover:text-[#d37655]'}`}
+                onClick={() => setSelectedCategory(category)}
+              >
+                {CATEGORY_LABELS[category] ?? category.replace(/^[a-z]/, (c) => c.toUpperCase())}
+                <span className="ml-2 text-[0.65rem] font-normal tracking-[0.2em]">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {activeCategory && visibleDishes.length > 0 ? (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-[#a77044]">
+              {CATEGORY_LABELS[activeCategory] ?? activeCategory.replace(/^[a-z]/, (c) => c.toUpperCase())}
+            </h3>
+            <ul className="space-y-3">
+              {visibleDishes.map((dish) => (
+                <li key={dish.id} className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)] transition duration-150 hover:-translate-y-0.5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="text-base font-semibold text-[#2b1c12]">{dish.name}</div>
+                      {dish.description && <div className="text-sm leading-relaxed text-[#6f5440]">{dish.description}</div>}
+                    </div>
+                    <div className="flex flex-col items-end gap-2 text-xs uppercase tracking-widest text-[#a77044]/90">
+                      {dish.created_at && <span>Added {new Date(dish.created_at).toLocaleDateString()}</span>}
+                      {dish.updated_at && <span>Updated {new Date(dish.updated_at).toLocaleDateString()}</span>}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-[#f5d8b4]/60 bg-white/60 p-6 text-sm text-[#6f5440]">
+            No dishes in this category yet.
+          </div>
+        )}
+      </div>
     </ListShell>
   );
 };
@@ -112,6 +188,7 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState<'main' | 'side' | 'dessert' | 'other'>('other');
   const [submitting, setSubmitting] = useState(false);
 
   async function submit() {
@@ -122,10 +199,11 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
     }
     setSubmitting(true);
     try {
-      await api.post('/dishes', { name, description });
+      await api.post('/dishes', { name, description, category });
       toast.success('Dish added');
       setName('');
       setDescription('');
+      setCategory('other');
       setOpen(false);
       await onAdded();
     } catch (e: any) {
@@ -162,6 +240,17 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
               rows={3}
               className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
             />
+            <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Category</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value as typeof category)}
+              className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+            >
+              <option value="main">Main</option>
+              <option value="side">Side</option>
+              <option value="dessert">Dessert</option>
+              <option value="other">Other</option>
+            </select>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
@@ -174,7 +263,7 @@ function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
               <button
                 type="button"
                 className="text-sm font-medium text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655]"
-                onClick={() => { setOpen(false); setName(''); setDescription(''); }}
+                onClick={() => { setOpen(false); setName(''); setDescription(''); setCategory('other'); }}
               >
                 Cancel
               </button>

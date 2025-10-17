@@ -45,19 +45,74 @@ export async function removeGuestFromMeal(mealId: string, guestId: string) {
   return result;
 }
 
-export async function getMealRankings(mealId: string) {
-  const dishRankings = await db
+export async function getMainMealRankings(mealId: string) {
+  const mainDishRankings = await db
     .select({
       dishId: dishesTable.id,
       name: dishesTable.name,
       description: dishesTable.description,
+      category: dishesTable.category,
       avgRank: avg(dishesRankTable.rank)
     }).from(mealGuestsTable)
     .innerJoin(dishesRankTable, eq(mealGuestsTable.guestId, dishesRankTable.guestId))
     .innerJoin(dishesTable, eq(dishesTable.id, dishesRankTable.dishId))
-    .where(eq(mealGuestsTable.mealId, mealId))
+    .where(and(eq(mealGuestsTable.mealId, mealId), eq(dishesTable.category, 'main'))) 
     .groupBy(dishesTable.id)
     .orderBy(desc(avg(dishesRankTable.rank)));
 
-  return dishRankings;
+  return mainDishRankings;
+}
+
+export async function getSideMealRankings(mealId: string) {
+  const sideDishRankings = await db
+    .select({
+      dishId: dishesTable.id,
+      name: dishesTable.name,
+      description: dishesTable.description,
+      category: dishesTable.category,
+      avgRank: avg(dishesRankTable.rank)
+    }).from(mealGuestsTable)
+    .innerJoin(dishesRankTable, eq(mealGuestsTable.guestId, dishesRankTable.guestId))
+    .innerJoin(dishesTable, eq(dishesTable.id, dishesRankTable.dishId))
+    .where(and(eq(mealGuestsTable.mealId, mealId), eq(dishesTable.category, 'side'))) 
+    .groupBy(dishesTable.id)
+    .orderBy(desc(avg(dishesRankTable.rank)));
+
+  return sideDishRankings;
+}
+export async function getDessertMealRankings(mealId: string) {
+  const dessertDishRankings = await db
+    .select({
+      dishId: dishesTable.id,
+      name: dishesTable.name,
+      description: dishesTable.description,
+      category: dishesTable.category,
+      avgRank: avg(dishesRankTable.rank)
+    }).from(mealGuestsTable)
+    .innerJoin(dishesRankTable, eq(mealGuestsTable.guestId, dishesRankTable.guestId))
+    .innerJoin(dishesTable, eq(dishesTable.id, dishesRankTable.dishId))
+    .where(and(eq(mealGuestsTable.mealId, mealId), eq(dishesTable.category, 'dessert'))) 
+    .groupBy(dishesTable.id)
+    .orderBy(desc(avg(dishesRankTable.rank)));
+
+  return dessertDishRankings;
+} 
+
+
+export async function getOtherMealRankings(mealId: string) {
+  const otherDishRankings = await db
+    .select({
+      dishId: dishesTable.id,
+      name: dishesTable.name,
+      description: dishesTable.description,
+      category: dishesTable.category,
+      avgRank: avg(dishesRankTable.rank)
+    }).from(mealGuestsTable)
+    .innerJoin(dishesRankTable, eq(mealGuestsTable.guestId, dishesRankTable.guestId))
+    .innerJoin(dishesTable, eq(dishesTable.id, dishesRankTable.dishId))
+    .where(and(eq(mealGuestsTable.mealId, mealId), eq(dishesTable.category, 'other'))) 
+    .groupBy(dishesTable.id)
+    .orderBy(desc(avg(dishesRankTable.rank)));
+
+  return otherDishRankings;
 }

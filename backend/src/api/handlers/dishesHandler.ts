@@ -16,15 +16,16 @@ export async function addDishHandler(req: Request, res: Response){
     return;
   }
   try {
-    const {name, description} = req.body;
-    if (!name){
+    const {name, description, category} = req.body;
+    if (!name || !category){
       throw new Error("Missing dish information.");
     }
 
     const dish = await addDish({
       name,
       description,
-      userId 
+      category,
+      userId
     });
 
     res.status(200).json(dish);

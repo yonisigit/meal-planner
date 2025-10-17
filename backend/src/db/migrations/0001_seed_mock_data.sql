@@ -1,10 +1,10 @@
 INSERT OR IGNORE INTO "users" ("id", "username", "password", "created_at", "updated_at") VALUES
   ('seed-user-1', 'testchef', 'password123', '2024-01-01T00:00:00.000Z', '2024-01-01T00:00:00.000Z');
 --> statement-breakpoint
-INSERT OR IGNORE INTO "dishes" ("id", "name", "description", "user_id", "created_at", "updated_at") VALUES
-  ('seed-dish-1', 'Lemon Herb Chicken', 'Roasted chicken with fresh herbs and lemon butter.', 'seed-user-1', '2024-01-02T00:00:00.000Z', '2024-01-02T00:00:00.000Z'),
-  ('seed-dish-2', 'Spring Veggie Pasta', 'Pasta tossed with seasonal vegetables and basil pesto.', 'seed-user-1', '2024-01-02T00:00:00.000Z', '2024-01-02T00:00:00.000Z'),
-  ('seed-dish-3', 'Dark Chocolate Tart', 'Silky ganache tart with sea salt flakes.', 'seed-user-1', '2024-01-02T00:00:00.000Z', '2024-01-02T00:00:00.000Z');
+INSERT OR IGNORE INTO "dishes" ("id", "name", "description", "category", "user_id", "created_at", "updated_at") VALUES
+  ('seed-dish-1', 'Lemon Herb Chicken', 'Roasted chicken with fresh herbs and lemon butter.', 'main', 'seed-user-1', '2024-01-02T00:00:00.000Z', '2024-01-02T00:00:00.000Z'),
+  ('seed-dish-2', 'Spring Veggie Pasta', 'Pasta tossed with seasonal vegetables and basil pesto.', 'side', 'seed-user-1', '2024-01-02T00:00:00.000Z', '2024-01-02T00:00:00.000Z'),
+  ('seed-dish-3', 'Dark Chocolate Tart', 'Silky ganache tart with sea salt flakes.', 'dessert', 'seed-user-1', '2024-01-02T00:00:00.000Z', '2024-01-02T00:00:00.000Z');
 --> statement-breakpoint
 INSERT OR IGNORE INTO "guests" ("id", "name", "user_id", "created_at", "updated_at") VALUES
   ('seed-guest-1', 'Alex Johnson', 'seed-user-1', '2024-01-03T00:00:00.000Z', '2024-01-03T00:00:00.000Z'),

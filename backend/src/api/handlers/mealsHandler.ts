@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { authenticateUserId } from "../../auth.js";
-import { addGuestToMeal, addMeal, getMealGuests, getMealRankings, getMealsByUserId, removeGuestFromMeal } from "../../db/queries/mealsQueries.js";
+import { addGuestToMeal, addMeal, getDessertMealRankings, getMainMealRankings, getMealGuests, getMealsByUserId, getOtherMealRankings, getSideMealRankings, removeGuestFromMeal } from "../../db/queries/mealsQueries.js";
 
 
 export async function getMealsByUserHandler(req: Request, res: Response) {
@@ -130,9 +130,17 @@ export async function getMenuHandler(req: Request, res: Response) {
     if (!mealId) {
       throw new Error("Error with meal info.");
     }
-    const menu = await getMealRankings(mealId);
+    const mainDishes = await getMainMealRankings(mealId);
+    const sideDishes = await getSideMealRankings(mealId);
+    const dessertDishes = await getDessertMealRankings(mealId);
+    const otherDishes = await getOtherMealRankings(mealId);
 
-    res.status(200).json(menu.slice(0, 4));
+    res.status(200).json({
+      main: mainDishes.slice(0, 2),
+      side: sideDishes.slice(0, 4),
+      dessert: dessertDishes.slice(0, 1),
+      other: otherDishes.slice(0, 3)
+    });
   } catch (error) {
     console.error("Error fetching meal menu:", error);
     res.status(500).json({ "message": "Internal Server Error" });
