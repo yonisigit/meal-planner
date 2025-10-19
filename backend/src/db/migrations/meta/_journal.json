@@ -15,6 +15,27 @@
       "when": 1760693337996,
       "tag": "0001_seed_mock_data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1760910285639,
+      "tag": "0002_burly_tusk",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1760911158556,
+      "tag": "0003_married_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1760911688880,
+      "tag": "0004_curved_boomerang",
+      "breakpoints": true
     }
   ]
 }

@@ -17,14 +17,14 @@ export async function saveRefreshToken(token: string, userId: string) {
   const newToken = await db.insert(refreshTokensTable).values({
     token: token,
     userId: userId,
-    expiresAt: Date.now() + config.jwt.refreshExpiry * 1000 // expiresAt in ms
+    expiresAt: Date.now() + config.jwt.refreshExpiry 
   }).returning();
   return newToken;
 }
 
 export async function revokeRefreshToken(token: string) {
   const result = await db.update(refreshTokensTable)
-    .set({ revokedAt: Date.now(), updatedAt: new Date().toISOString() })
+    .set({ revokedAt: Date.now() })
     .where(eq(refreshTokensTable.token, token))
     .returning();
   return result;

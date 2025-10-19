@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
   const [mode, setMode] = useState<'idle' | 'login' | 'signup'>('idle');
+  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,8 +19,8 @@ const LoginPage = () => {
     setLoading(true);
     setError(null);
     // client-side validation
-    if (!username || !password) {
-      toast.error('Please enter both username and password');
+    if (!username || !password || (mode === 'signup' && !name.trim())) {
+      toast.error(mode === 'signup' ? 'Please enter name, username, and password' : 'Please enter both username and password');
       setLoading(false);
       return;
     }
@@ -33,10 +34,15 @@ const LoginPage = () => {
       setLoading(false);
       return;
     }
+    if (mode === 'signup' && name.trim().length < 2) {
+      toast.error('Name must be at least 2 characters');
+      setLoading(false);
+      return;
+    }
     try {
       if (mode === 'signup') {
         // create the account first
-        await api.post('/auth/signup', { username, password });
+        await api.post('/auth/signup', { name: name.trim(), username, password });
       }
 
       // always attempt login (either after signup or when mode === 'login')
@@ -104,6 +110,16 @@ const LoginPage = () => {
 
           {(mode === 'login' || mode === 'signup') && (
             <div className="space-y-5">
+              {mode === 'signup' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Name</label>
+                  <input
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Username</label>
                 <input

@@ -3,10 +3,11 @@ import { randomUUID } from "crypto";
 
 export const usersTable = sqliteTable("users", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
+  name: text("name").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 });
 
 export type User = typeof usersTable.$inferInsert;
@@ -16,7 +17,7 @@ export const guestsTable = sqliteTable("guests", {
   name: text("name").notNull(),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 });
 
 export type Guest = typeof guestsTable.$inferInsert;
@@ -28,7 +29,7 @@ export const dishesTable = sqliteTable("dishes", {
   category: text("category", {enum: ["main", "side", "dessert", "other"]}).notNull().default("other"),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 });
 
 export type Dish = typeof dishesTable.$inferInsert;
@@ -39,7 +40,7 @@ export const dishesRankTable = sqliteTable("dishes_rank", {
   dishId: text("dish_id").notNull().references(() => dishesTable.id, { onDelete: "cascade" }),
   rank: integer("rank").notNull(),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 },
   (t) => [unique().on(t.guestId, t.dishId)]
 );
@@ -52,26 +53,28 @@ export const refreshTokensTable = sqliteTable("refresh_tokens", {
   expiresAt: integer("expires_at").notNull(),
   revokedAt: integer("revoked_at"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 });
 
 export type RefreshToken = typeof refreshTokensTable.$inferInsert;
 
-export const mealsTable = sqliteTable("meals_table", {
+export const mealsTable = sqliteTable("meals", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   date: text("date").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
-  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 });
 
 export type Meal = typeof mealsTable.$inferInsert;
 
 export const mealGuestsTable = sqliteTable("meal_guests", {
   mealId: text("meal_id").notNull().references(() => mealsTable.id, { onDelete: "cascade" }),
-  guestId: text("guest_id").notNull().references(() => guestsTable.id, { onDelete: "cascade" })
+  guestId: text("guest_id").notNull().references(() => guestsTable.id, { onDelete: "cascade" }),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
 },
   (t) => [unique().on(t.mealId, t.guestId)]
 );

@@ -2,9 +2,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import crypto from "crypto";
 
 import { config } from "./config/config.js";
-import type { Request, Response } from "express";
-
-
+import type { Request } from "express";
 
 
 type payload = Pick<JwtPayload, "iss" | "sub" | "iat" | "exp">;
@@ -17,7 +15,7 @@ export function generateAccessToken(userId: string, secret: string) {
     iat: issuedAt,
     exp: expiresAt,
   };
-  const accessToken = jwt.sign(tokenPayload, secret);
+  const accessToken = jwt.sign(tokenPayload, secret, { algorithm: "HS256" });
   return accessToken;
 }
 

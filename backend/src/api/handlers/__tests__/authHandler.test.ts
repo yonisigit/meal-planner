@@ -11,6 +11,13 @@ type RefreshRecord = {
 
 type UserRecord = {
   id: string;
+  name: string;
+  username: string;
+  password: string;
+};
+
+type NewUserRecord = {
+  name: string;
   username: string;
   password: string;
 };
@@ -25,7 +32,7 @@ const REQUIRED_ENV = {
   PORT: "4000",
 };
 
-const mockCreateUser = jest.fn<(user: UserRecord) => Promise<UserRecord>>();
+const mockCreateUser = jest.fn<(user: NewUserRecord) => Promise<UserRecord>>();
 const mockGetUserByUsername = jest.fn<(username: string) => Promise<UserRecord | undefined>>();
 const mockSaveRefreshToken = jest.fn<(token: string, userId: string) => Promise<void>>();
 const mockGetRefreshToken = jest.fn<(token: string) => Promise<RefreshRecord | null>>();
@@ -77,7 +84,7 @@ function createMockResponse() {
 
 describe("signupHandler", () => {
   test("creates user when username free", async () => {
-    const input: UserRecord = { id: "user-1", username: "alice", password: "secret" };
+    const input: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
     mockGetUserByUsername.mockResolvedValue(undefined);
     mockCreateUser.mockResolvedValue(input);
 
@@ -87,24 +94,28 @@ describe("signupHandler", () => {
     await handlers.signupHandler(req, res);
 
     expect(mockGetUserByUsername).toHaveBeenCalledWith("alice");
-    expect(mockCreateUser).toHaveBeenCalledWith(input);
+    expect(mockCreateUser).toHaveBeenCalledWith({
+      username: "alice",
+      name: "Alice",
+      password: "secret",
+    });
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith(input);
   });
 
   test("responds 401 when username missing", async () => {
-    const req = { body: { password: "secret" } } as Request;
+    const req = { body: { name: "Alice", password: "secret" } } as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.signupHandler(req, res);
 
     expect(status).toHaveBeenCalledWith(401);
-    expect(json).toHaveBeenCalledWith({ message: "Error: Missing user username/password" });
+    expect(json).toHaveBeenCalledWith({ message: "Error: Missing user username/name/password" });
     expect(mockCreateUser).not.toHaveBeenCalled();
   });
 
   test("responds 401 when username already exists", async () => {
-    const existing: UserRecord = { id: "user-1", username: "alice", password: "secret" };
+    const existing: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
     mockGetUserByUsername.mockResolvedValue(existing);
 
     const req = { body: existing } as Request;
@@ -120,7 +131,7 @@ describe("signupHandler", () => {
 
 describe("loginHandler", () => {
   test("returns tokens when credentials valid", async () => {
-    const user: UserRecord = { id: "user-1", username: "alice", password: "secret" };
+  const user: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
     mockGetUserByUsername.mockResolvedValue(user);
     mockGenerateAccessToken.mockReturnValue("access-token");
     mockGenerateRefreshToken.mockReturnValue("refresh-token");
@@ -144,6 +155,7 @@ describe("loginHandler", () => {
     expect(json).toHaveBeenCalledWith({
       userID: "user-1",
       username: "alice",
+      name: "Alice",
       accessToken: "access-token",
     });
   });
@@ -164,7 +176,7 @@ describe("loginHandler", () => {
   });
 
   test("throws when password invalid", async () => {
-    const user: UserRecord = { id: "user-1", username: "alice", password: "secret" };
+  const user: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
     mockGetUserByUsername.mockResolvedValue(user);
     const req = { body: { username: "alice", password: "wrong" } } as Request;
     const { res } = createMockResponse();

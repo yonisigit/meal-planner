@@ -6,16 +6,26 @@ import { config } from "../../config/config.js";
 
 export async function signupHandler(req: Request, res: Response) {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      throw new Error("Missing user username/password");
+    const { username, name, password } = req.body;
+    if (!username || !name || !password) {
+      throw new Error("Missing user username/name/password");
     }
 
-    if (await getUserByUsername(username)) {
+    const normalizedUsername = String(username).trim();
+    const normalizedName = String(name).trim();
+    if (!normalizedUsername || !normalizedName) {
+      throw new Error("Missing user username/name/password");
+    }
+
+    if (await getUserByUsername(normalizedUsername)) {
       throw new Error("Username already exists");
     }
 
-    const user = await createUser(req.body);
+    const user = await createUser({
+      username: normalizedUsername,
+      name: normalizedName,
+      password,
+    });
 
     res.status(200).json(user);
   } catch (error) {
@@ -52,6 +62,7 @@ export async function loginHandler(req: Request, res: Response) {
     json({
       userID: user.id,
       username: user.username,
+      name: user.name,
       accessToken: accessToken,
     });
 }
