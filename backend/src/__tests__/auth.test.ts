@@ -102,4 +102,24 @@ describe("auth token helpers", () => {
 
     expect(() => auth.getBearerToken(fakeRequest)).toThrow("Invalid authorization header");
   });
+
+  test("hashPassword returns an argon2 hash and checkHashedPassword accepts it", async () => {
+    const plain = "super-secret";
+
+    const hashed = await auth.hashPassword(plain);
+
+    expect(typeof hashed).toBe("string");
+    expect(hashed).not.toBe(plain);
+    expect(hashed.startsWith("$argon2")).toBe(true);
+
+    const matches = await auth.checkHashedPassword(hashed, plain);
+    expect(matches).toBe(true);
+  });
+
+  test("checkHashedPassword rejects incorrect passwords", async () => {
+    const hashed = await auth.hashPassword("correct-horse-battery-staple");
+
+    const matches = await auth.checkHashedPassword(hashed, "wrong-password");
+    expect(matches).toBe(false);
+  });
 });

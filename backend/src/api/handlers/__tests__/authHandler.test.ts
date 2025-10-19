@@ -262,7 +262,54 @@ describe("refreshHandler", () => {
     await handlers.refreshHandler(req, res);
 
     expect(mockGenerateAccessToken).toHaveBeenCalledWith("user-1", REQUIRED_ENV.ACCESS_TOKEN_SECRET);
+    expect(mockRevokeRefreshToken).not.toHaveBeenCalled();
     expect(status).toHaveBeenCalledWith(200);
     expect(json).toHaveBeenCalledWith({ accessToken: "new-access-token" });
+  });
+
+  test("treats tokens expiring at the current instant as valid", async () => {
+    const now = Date.now();
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);
+
+    const stored: RefreshRecord = {
+      userId: "user-1",
+      revokedAt: null,
+      expiresAt: now,
+    };
+
+    mockGetRefreshToken.mockResolvedValue(stored);
+    mockGenerateAccessToken.mockReturnValue("edge-access-token");
+
+    const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
+    const { res, status, json } = createMockResponse();
+
+    await handlers.refreshHandler(req, res);
+
+    expect(mockGenerateAccessToken).toHaveBeenCalledWith("user-1", REQUIRED_ENV.ACCESS_TOKEN_SECRET);
+    expect(mockRevokeRefreshToken).not.toHaveBeenCalled();
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith({ accessToken: "edge-access-token" });
+
+    nowSpy.mockRestore();
+  });
+
+  test("rejects tokens flagged as revoked even when not expired", async () => {
+    const stored: RefreshRecord = {
+      userId: "user-1",
+      revokedAt: new Date(),
+      expiresAt: Date.now() + 60_000,
+    };
+
+    mockGetRefreshToken.mockResolvedValue(stored);
+
+    const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
+    const { res, status, json } = createMockResponse();
+
+    await handlers.refreshHandler(req, res);
+
+    expect(mockGenerateAccessToken).not.toHaveBeenCalled();
+    expect(mockRevokeRefreshToken).not.toHaveBeenCalled();
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith({ message: "Invalid refresh token" });
   });
 });

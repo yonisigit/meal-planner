@@ -1,11 +1,12 @@
 import jwt, { type JwtPayload } from "jsonwebtoken";
+import argon2 from "argon2";
 import crypto from "crypto";
-
 import { config } from "./config/config.js";
 import type { Request } from "express";
 
 
 type payload = Pick<JwtPayload, "iss" | "sub" | "iat" | "exp">;
+
 export function generateAccessToken(userId: string, secret: string) {
   const issuedAt = Math.floor(Date.now() / 1000);
   const expiresAt = issuedAt + config.jwt.defaultExpiry;
@@ -62,3 +63,20 @@ export function generateRefreshToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+export async function hashPassword(password: string){
+  try {
+    const hashedPassword = await argon2.hash(password);
+    return hashedPassword;
+  } catch (error) {
+    throw new Error("Failed to hash password");
+  }
+}
+
+export async function checkHashedPassword(hashedPassword: string, plainPassword: string){
+  try {
+    const isMatch = await argon2.verify(hashedPassword, plainPassword);
+    return isMatch;
+  } catch (error) {
+    throw new Error("Failed to check hashed password");
+  }
+}

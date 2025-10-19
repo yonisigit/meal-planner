@@ -19,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "@libsql/client": "^0.15.15",
+    "argon2": "^0.44.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",

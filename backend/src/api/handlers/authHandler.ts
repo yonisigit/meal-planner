@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { createUser, getRefreshToken, getUserByUsername, revokeRefreshToken, saveRefreshToken } from "../../db/queries/userQueries.js";
-import { generateAccessToken, generateRefreshToken } from "../../auth.js";
+import { checkHashedPassword, generateAccessToken, generateRefreshToken, hashPassword } from "../../auth.js";
 import { config } from "../../config/config.js";
 
 
@@ -24,7 +24,7 @@ export async function signupHandler(req: Request, res: Response) {
     const user = await createUser({
       username: normalizedUsername,
       name: normalizedName,
-      password,
+      hashedPassword: await hashPassword(password),
     });
 
     res.status(200).json(user);
@@ -44,7 +44,8 @@ export async function loginHandler(req: Request, res: Response) {
   if (!user) {
     throw new Error("Username does not exist");
   }
-  if (user.password !== password) {
+  const isPasswordValid = await checkHashedPassword(user.hashedPassword, password);
+  if (!isPasswordValid) {
     throw new Error("Password is incorrect")
   }
 
