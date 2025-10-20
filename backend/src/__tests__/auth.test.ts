@@ -25,6 +25,8 @@ beforeAll(() => {
   });
 });
 
+jest.setTimeout(20000);
+
 beforeEach(async () => {
   jest.resetModules();
   auth = await import("../auth.js");

@@ -13,13 +13,13 @@ type UserRecord = {
   id: string;
   name: string;
   username: string;
-  password: string;
+  hashedPassword: string;
 };
 
 type NewUserRecord = {
   name: string;
   username: string;
-  password: string;
+  hashedPassword: string;
 };
 
 const REQUIRED_ENV = {
@@ -40,6 +40,8 @@ const mockRevokeRefreshToken = jest.fn<(token: string) => Promise<void>>();
 const mockGenerateAccessToken = jest.fn<(userId: string, secret: string) => string>();
 const mockGenerateRefreshToken = jest.fn<() => string>();
 const mockGetBearerToken = jest.fn<(req: Request) => string>();
+const mockHashPassword = jest.fn<(password: string) => Promise<string>>();
+const mockCheckHashedPassword = jest.fn<(hashed: string, password: string) => Promise<boolean>>();
 
 let handlers: AuthHandlersModule;
 
@@ -65,6 +67,8 @@ beforeEach(async () => {
     generateAccessToken: mockGenerateAccessToken,
     generateRefreshToken: mockGenerateRefreshToken,
     getBearerToken: mockGetBearerToken,
+    hashPassword: mockHashPassword,
+    checkHashedPassword: mockCheckHashedPassword,
   }));
 
   handlers = await import("../authHandler.js");
@@ -84,11 +88,17 @@ function createMockResponse() {
 
 describe("signupHandler", () => {
   test("creates user when username free", async () => {
-    const input: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
+    const input: UserRecord = {
+      id: "user-1",
+      name: "Alice",
+      username: "alice",
+      hashedPassword: "hashed-secret",
+    };
     mockGetUserByUsername.mockResolvedValue(undefined);
     mockCreateUser.mockResolvedValue(input);
+    mockHashPassword.mockResolvedValue("hashed-secret");
 
-    const req = { body: input } as Request;
+    const req = { body: { name: "Alice", username: "alice", password: "secret" } } as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.signupHandler(req, res);
@@ -97,10 +107,13 @@ describe("signupHandler", () => {
     expect(mockCreateUser).toHaveBeenCalledWith({
       username: "alice",
       name: "Alice",
-      password: "secret",
+      hashedPassword: "hashed-secret",
     });
     expect(status).toHaveBeenCalledWith(200);
-    expect(json).toHaveBeenCalledWith(input);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Alice",
+      username: "alice",
+    }));
   });
 
   test("responds 401 when username missing", async () => {
@@ -115,10 +128,15 @@ describe("signupHandler", () => {
   });
 
   test("responds 401 when username already exists", async () => {
-    const existing: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
+    const existing: UserRecord = {
+      id: "user-1",
+      name: "Alice",
+      username: "alice",
+      hashedPassword: "hashed-secret",
+    };
     mockGetUserByUsername.mockResolvedValue(existing);
 
-    const req = { body: existing } as Request;
+    const req = { body: { name: "Alice", username: "alice", password: "secret" } } as Request;
     const { res, status, json } = createMockResponse();
 
     await handlers.signupHandler(req, res);
@@ -131,8 +149,14 @@ describe("signupHandler", () => {
 
 describe("loginHandler", () => {
   test("returns tokens when credentials valid", async () => {
-  const user: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
+    const user: UserRecord = {
+      id: "user-1",
+      name: "Alice",
+      username: "alice",
+      hashedPassword: "hashed-secret",
+    };
     mockGetUserByUsername.mockResolvedValue(user);
+    mockCheckHashedPassword.mockResolvedValue(true);
     mockGenerateAccessToken.mockReturnValue("access-token");
     mockGenerateRefreshToken.mockReturnValue("refresh-token");
 
@@ -176,8 +200,14 @@ describe("loginHandler", () => {
   });
 
   test("throws when password invalid", async () => {
-  const user: UserRecord = { id: "user-1", name: "Alice", username: "alice", password: "secret" };
+    const user: UserRecord = {
+      id: "user-1",
+      name: "Alice",
+      username: "alice",
+      hashedPassword: "hashed-secret",
+    };
     mockGetUserByUsername.mockResolvedValue(user);
+    mockCheckHashedPassword.mockResolvedValue(false);
     const req = { body: { username: "alice", password: "wrong" } } as Request;
     const { res } = createMockResponse();
 

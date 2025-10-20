@@ -8,6 +8,7 @@ import DishesPage from './pages/DishesPage';
 import GuestsPage from './pages/GuestsPage';
 import MealsPage from './pages/MealsPage';
 import LoginPage from './pages/LoginPage';
+import GuestRankPage from './pages/GuestRankPage';
 
 const App = () => {
   return (
@@ -47,6 +48,7 @@ const App = () => {
           </ProtectedRoute>
         )}
       />
+      <Route path="/guests/:rankToken" element={<GuestRankPage />} />
       <Route
         path="/meals"
         element={(

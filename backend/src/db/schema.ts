@@ -15,6 +15,7 @@ export type User = typeof usersTable.$inferInsert;
 export const guestsTable = sqliteTable("guests", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   name: text("name").notNull(),
+  rankToken: text("rank_token").$defaultFn(() => randomUUID()),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),

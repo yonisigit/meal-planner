@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
-import { addGuest, getGuestDishes, getGuests, getGuestsByUserId, getGuestUser, rankDish } from "../../db/queries/guestQueries.js";
+import { addGuest, getDishForUser, getGuestByRankToken, getGuestDishes, getGuests, getGuestsByUserId, getGuestUser, rankDish } from "../../db/queries/guestQueries.js";
 import { authenticateUserId } from "../../auth.js";
+import { getUserNameById } from "../../db/queries/userQueries.js";
 
 
 export async function getGuestsHandler(_: Request, res: Response) {
@@ -97,6 +98,65 @@ export async function rankDishHandler(req: Request, res: Response) {
 
     res.status(200).json(rankedDish);
 
+  } catch (error) {
+    res.status(400).json({ "message": `${error}` });
+  }
+}
+
+export async function getGuestByRankTokenHandler(req: Request, res: Response) {
+  try {
+    const { rankToken } = req.params;
+    if (!rankToken) {
+      throw new Error("Missing rank token");
+    }
+
+    const guest = await getGuestByRankToken(rankToken);
+    if (!guest) {
+      res.status(404).json({ "message": "Guest not found" });
+      return;
+    }
+
+  const hostName = await getUserNameById(guest.userId);
+  const dishes = await getGuestDishes(guest.userId, guest.id);
+
+  res.status(200).json({ guest, dishes, hostName });
+  } catch (error) {
+    res.status(400).json({ "message": `${error}` });
+  }
+}
+
+export async function rankDishByRankTokenHandler(req: Request, res: Response) {
+  try {
+    const { rankToken, dishId } = req.params;
+    const { rank } = req.body;
+
+    if (!rankToken || !dishId) {
+      throw new Error("Missing rank token or dish information");
+    }
+
+    const parsedRank = Number(rank);
+    if (!Number.isFinite(parsedRank)) {
+      throw new Error("Invalid rank value");
+    }
+    if (parsedRank > 3 || parsedRank < 1) {
+      throw new Error("rank must be between 1 and 3");
+    }
+
+    const guest = await getGuestByRankToken(rankToken);
+    if (!guest) {
+      res.status(404).json({ "message": "Guest not found" });
+      return;
+    }
+
+    const dish = await getDishForUser(dishId, guest.userId);
+    if (!dish) {
+      res.status(404).json({ "message": "Dish not found" });
+      return;
+    }
+
+    const rankedDish = await rankDish(guest.id, dishId, parsedRank);
+
+    res.status(200).json(rankedDish);
   } catch (error) {
     res.status(400).json({ "message": `${error}` });
   }

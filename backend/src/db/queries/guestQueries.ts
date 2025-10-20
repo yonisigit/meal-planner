@@ -14,6 +14,14 @@ export async function addGuest(newGuest: Guest){
     return guest;
 }
 
+export async function getGuestByRankToken(rankToken: string) {
+  const [guest] = await db
+    .select()
+    .from(guestsTable)
+    .where(eq(guestsTable.rankToken, rankToken));
+  return guest;
+}
+
 export async function getGuestsByUserId(userId: string){
   const guests = await db.select().from(guestsTable).where(eq(guestsTable.userId, userId)).orderBy(guestsTable.name);
   return guests;
@@ -61,6 +69,14 @@ export async function rankDish(guestId: string, dishId: string, rank: number){
 export async function getGuestUser(guestId: string) {
   const [user] = await db.select({userId: guestsTable.userId}).from(guestsTable).where(eq(guestsTable.id, guestId));
   return user;
+}
+
+export async function getDishForUser(dishId: string, userId: string) {
+  const [dish] = await db
+    .select({ id: dishesTable.id })
+    .from(dishesTable)
+    .where(and(eq(dishesTable.id, dishId), eq(dishesTable.userId, userId)));
+  return dish;
 }
 
 

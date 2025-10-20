@@ -13,6 +13,13 @@ export async function getUserByUsername(username: string) {
   return user;
 }
 
+export async function getUserNameById(userId: string) {
+  const [user] = await db.select({
+    name: usersTable.name
+  }).from(usersTable).where(eq(usersTable.id, userId));
+  return user?.name;
+}
+
 export async function saveRefreshToken(token: string, userId: string) {
   const newToken = await db.insert(refreshTokensTable).values({
     token: token,

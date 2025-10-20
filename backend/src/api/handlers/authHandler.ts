@@ -27,7 +27,10 @@ export async function signupHandler(req: Request, res: Response) {
       hashedPassword: await hashPassword(password),
     });
 
-    res.status(200).json(user);
+    res.status(200).json({
+      username: user?.username,
+      name: user?.name
+    });
   } catch (error) {
     res.status(401).json({ "message": `${error}` });
   }

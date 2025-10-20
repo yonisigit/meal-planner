@@ -485,10 +485,10 @@ const MealCard = ({
         </div>
         <div className="shrink-0 text-right text-xs uppercase tracking-[0.28em] text-[#a77044]">
           <div>{formatDisplayDate(meal.date)}</div>
-          <div className="mt-2 flex items-center justify-end gap-2">
+          <div className="mt-2 flex flex-col items-end gap-1">
             <button
               type="button"
-              className={`inline-flex items-center gap-2 rounded-full border border-[#d37655]/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.35em] transition focus:outline-none focus:ring-2 focus:ring-[#d37655]/40 ${showMenu ? 'bg-[#d37655] text-white shadow-[0_10px_25px_-15px_rgba(211,118,85,0.8)]' : 'bg-[#fbe0d4]/85 text-[#a15535] hover:-translate-y-0.5 hover:bg-[#fbe0d4]'}`}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.7rem] font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#d37655]/40 sm:text-xs ${showMenu ? 'bg-[#d37655] text-white shadow-[0_12px_28px_-18px_rgba(211,118,85,0.85)]' : 'border border-[#d37655]/40 bg-white/90 text-[#a15535] hover:-translate-y-0.5 hover:bg-[#fbe0d4]'}`}
               onClick={async () => {
                 console.debug('[MealsPage] View suggested menu toggle', meal.id);
                 const willShow = !showMenu;
@@ -502,9 +502,11 @@ const MealCard = ({
                 }
               }}
             >
-              <span className="text-[0.7rem] font-bold">MENU</span>
-              <span>{showMenu ? 'Hide suggestions' : 'View suggestions'}</span>
+              <span className="font-bold tracking-[0.25em]">MENU</span>
+              <span className="tracking-normal">{showMenu ? 'Hide suggestions' : 'Show suggestions'}</span>
+              <span aria-hidden>{showMenu ? '▴' : '▾'}</span>
             </button>
+            <span className="text-[0.55rem] normal-case tracking-normal text-[#6f5440]">Based on guest rankings</span>
           </div>
         </div>
       </div>
