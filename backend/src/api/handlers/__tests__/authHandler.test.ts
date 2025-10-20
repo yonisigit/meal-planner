@@ -77,13 +77,17 @@ beforeEach(async () => {
 function createMockResponse() {
   const json = jest.fn();
   const cookie = jest.fn().mockReturnThis();
+  const clearCookie = jest.fn().mockReturnThis();
   const status = jest.fn().mockReturnThis();
+  const send = jest.fn().mockReturnThis();
   const res = {
     status,
     cookie,
+    clearCookie,
+    send,
     json,
   } as unknown as Response;
-  return { res, status, cookie, json };
+  return { res, status, cookie, clearCookie, send, json };
 }
 
 describe("signupHandler", () => {
@@ -341,5 +345,26 @@ describe("refreshHandler", () => {
     expect(mockRevokeRefreshToken).not.toHaveBeenCalled();
     expect(status).toHaveBeenCalledWith(401);
     expect(json).toHaveBeenCalledWith({ message: "Invalid refresh token" });
+  });
+});
+
+describe("revokeHandler", () => {
+  test("revokes refresh token, clears cookie, and returns 204", async () => {
+    mockRevokeRefreshToken.mockResolvedValue();
+    const { res, status, clearCookie } = createMockResponse();
+    const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
+
+    await handlers.revokeHandler(req, res);
+
+    expect(mockRevokeRefreshToken).toHaveBeenCalledWith("refresh-token");
+    expect(clearCookie).toHaveBeenCalledWith(
+      "refreshToken",
+      expect.objectContaining({
+        httpOnly: true,
+        secure: false,
+        sameSite: "strict",
+      }),
+    );
+    expect(status).toHaveBeenCalledWith(204);
   });
 });

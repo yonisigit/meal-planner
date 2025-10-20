@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
+import { HttpError } from "../errors.js";
 import { addDish, getDishes, getDishesByUserId } from "../../db/queries/dishQueries.js";
-import { authenticateUserId
- } from "../../auth.js";
+import { authenticateUserId } from "../../auth.js";
 
 
 export async function getDishesHandler(_: Request, res: Response){
@@ -12,42 +12,31 @@ export async function getDishesHandler(_: Request, res: Response){
 export async function addDishHandler(req: Request, res: Response){
   const userId = authenticateUserId(req);
   if (!userId) {
-    res.status(401).json({ "message": "Unauthorized" });
-    return;
+    throw new HttpError(401, "Unauthorized");
   }
-  try {
-    const {name, description, category} = req.body;
-    if (!name || !category){
-      throw new Error("Missing dish information.");
-    }
-
-    const dish = await addDish({
-      name,
-      description,
-      category,
-      userId
-    });
-
-    res.status(200).json(dish);
-
-  } catch (error) {
-    res.status(400).json({"message": `${error}`});
+  const {name, description, category} = req.body;
+  if (!name || !category){
+    throw new HttpError(400, "Missing dish information.");
   }
+
+  const dish = await addDish({
+    name,
+    description,
+    category,
+    userId
+  });
+
+  res.status(200).json(dish);
 }
 
 export async function getDishesByUserHandler(req: Request, res: Response){
   const userId = authenticateUserId(req);
   if (!userId) {
-    res.status(401).json({ "message": "Unauthorized" });
-    return;
+    throw new HttpError(401, "Unauthorized");
   }
-  try {
-    const dishes = await getDishesByUserId(userId);
+  const dishes = await getDishesByUserId(userId);
 
-    res.status(200).json(dishes);
-  } catch (error) {
-    res.status(400).json({"message": `${error}`});
-  }
+  res.status(200).json(dishes);
 }
 
 

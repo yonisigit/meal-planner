@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { createUser, getRefreshToken, getUserByUsername, revokeRefreshToken, saveRefreshToken } from "../../db/queries/userQueries.js";
 import { checkHashedPassword, generateAccessToken, generateRefreshToken, hashPassword } from "../../auth.js";
 import { config } from "../../config/config.js";
+import { HttpError } from "../errors.js";
 
 
 export async function signupHandler(req: Request, res: Response) {
@@ -40,16 +41,16 @@ export async function signupHandler(req: Request, res: Response) {
 export async function loginHandler(req: Request, res: Response) {
   const { username, password } = req.body;
   if (!username || !password) {
-    throw new Error("Missing user username/password");
+    throw new HttpError(400, "Missing user username/password");
   }
 
   const user = await getUserByUsername(username);
   if (!user) {
-    throw new Error("Username does not exist");
+    throw new HttpError(401, "Username does not exist");
   }
   const isPasswordValid = await checkHashedPassword(user.hashedPassword, password);
   if (!isPasswordValid) {
-    throw new Error("Password is incorrect")
+    throw new HttpError(401, "Password is incorrect");
   }
 
   const accessToken = generateAccessToken(user.id, config.jwt.secret);
@@ -98,6 +99,11 @@ export async function refreshHandler(req: Request, res: Response) {
 export async function revokeHandler(req: Request, res: Response) {
   const refreshToken = req.cookies.refreshToken;
   await revokeRefreshToken(refreshToken);
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict",
+  });
   res.status(204).send();
 }
 

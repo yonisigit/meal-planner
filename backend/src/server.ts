@@ -10,6 +10,7 @@ import { authRouter } from "./api/routes/authRoute.js";
 import { dishesRouter } from "./api/routes/dishesRoute.js";
 import { runMigrations } from "./db/dbConfig.js";
 import { mealsRouter } from "./api/routes/mealsRoute.js";
+import { errorHandler } from "./api/middleware/errorHandler.js";
 
 await runMigrations();
 
@@ -38,6 +39,8 @@ if (config.isProd) {
     res.sendFile(path.join(distPath, 'index.html'));
   });
 }
+
+app.use(errorHandler);
 
 
 app.listen(config.port, () => {

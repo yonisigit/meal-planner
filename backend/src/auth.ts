@@ -3,6 +3,7 @@ import argon2 from "argon2";
 import crypto from "crypto";
 import { config } from "./config/config.js";
 import type { Request } from "express";
+import { HttpError } from "./api/errors.js";
 
 
 type payload = Pick<JwtPayload, "iss" | "sub" | "iat" | "exp">;
@@ -34,19 +35,15 @@ export function validateToken(token: string, secret: string) {
 }
 
 export function getBearerToken(req: Request): string{
-  try {
-    const authHeader = req.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
-    }
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      throw new Error("No token provided");
-    }
-    return token;
-  } catch (error) {
-    throw new Error("Invalid authorization header");
+  const authHeader = req.get("Authorization");
+  if (!authHeader) {
+    throw new HttpError(401, "Invalid authorization header");
   }
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    throw new HttpError(401, "Invalid authorization header");
+  }
+  return token;
 }
 
 export function authenticateUserId(req: Request){
@@ -55,7 +52,7 @@ export function authenticateUserId(req: Request){
     const decoded = validateToken(token, config.jwt.secret);
     return decoded.payload?.sub; // userId
   } catch (error) {
-    throw new Error("Failed to authenticate token");
+    throw new HttpError(401, "Failed to authenticate token");
   }
 }
 
@@ -68,7 +65,7 @@ export async function hashPassword(password: string){
     const hashedPassword = await argon2.hash(password);
     return hashedPassword;
   } catch (error) {
-    throw new Error("Failed to hash password");
+    throw new HttpError(500, "Failed to hash password");
   }
 }
 
@@ -77,6 +74,6 @@ export async function checkHashedPassword(hashedPassword: string, plainPassword:
     const isMatch = await argon2.verify(hashedPassword, plainPassword);
     return isMatch;
   } catch (error) {
-    throw new Error("Failed to check hashed password");
+    throw new HttpError(500, "Failed to check hashed password");
   }
 }
