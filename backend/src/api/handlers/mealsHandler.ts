@@ -57,12 +57,16 @@ export async function addGuestToMealHandler(req: Request, res: Response) {
     throw new HttpError(401, "Unauthorized");
   }
   const mealId = req.params.mealId;
-  const { guestId } = req.body;
-  if (!mealId || !guestId) {
+  const { guestIds } = req.body;
+  if (!mealId || !guestIds || guestIds.length === 0) {
     throw new HttpError(400, "Missing meal or guest information.");
   }
 
-  const result = await addGuestToMeal(mealId, guestId);
+  let result = [];
+  for (const guestId of guestIds) {
+    const res = await addGuestToMeal(mealId, guestId);
+    result.push(res);
+  }
 
   res.status(200).json(result);
 } 

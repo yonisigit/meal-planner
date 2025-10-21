@@ -244,13 +244,18 @@ const MealsPage = () => {
     }
   }, []);
 
-  const handleAddGuestToMeal = useCallback(async (mealId: string, guestId: string) => {
+  const handleAddGuestsToMeal = useCallback(async (mealId: string, guestIds: string[]) => {
+    const uniqueGuestIds = Array.from(new Set(guestIds.filter(Boolean)));
+    if (uniqueGuestIds.length === 0) {
+      return;
+    }
+
     try {
-      await api.post(`/meals/${mealId}`, { guestId });
-      toast.success('Guest added to meal');
+      await api.post(`/meals/${mealId}`, { guestIds: uniqueGuestIds });
       await loadMealGuests(mealId, { silent: true });
+      toast.success(uniqueGuestIds.length === 1 ? 'Guest added to meal' : 'Guests added to meal');
     } catch (err: any) {
-      const message = err?.response?.data?.message || err?.message || 'Failed to add guest to meal.';
+      const message = err?.response?.data?.message || err?.message || 'Failed to add guests to meal.';
       toast.error(message);
       throw new Error(message);
     }
@@ -311,7 +316,7 @@ const MealsPage = () => {
               meals={meals}
               mealGuests={mealGuests}
               availableGuests={availableGuests}
-              onAddGuest={handleAddGuestToMeal}
+              onAddGuests={handleAddGuestsToMeal}
               guestOptionsLoading={guestOptionsLoading}
               guestOptionsError={guestOptionsError}
               loadSuggestedMenu={loadSuggestedMenu}
@@ -344,7 +349,7 @@ const MealList = ({
   meals,
   mealGuests,
   availableGuests,
-  onAddGuest,
+  onAddGuests,
   guestOptionsLoading,
   guestOptionsError,
   loadSuggestedMenu,
@@ -360,7 +365,7 @@ const MealList = ({
   meals: Meal[];
   mealGuests: Record<string, MealGuest[]>;
   availableGuests: GuestOption[];
-  onAddGuest: (mealId: string, guestId: string) => Promise<void>;
+  onAddGuests: (mealId: string, guestIds: string[]) => Promise<void>;
   guestOptionsLoading: boolean;
   guestOptionsError: string | null;
   loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuByCategory>;
@@ -393,7 +398,7 @@ const MealList = ({
             meal={meal}
             guests={mealGuests[meal.id] ?? []}
             availableGuests={availableGuests}
-            onAddGuest={onAddGuest}
+            onAddGuests={onAddGuests}
             guestOptionsLoading={guestOptionsLoading}
             guestOptionsError={guestOptionsError}
             loadSuggestedMenu={loadSuggestedMenu}
@@ -416,7 +421,7 @@ const MealCard = ({
   meal,
   guests,
   availableGuests,
-  onAddGuest,
+  onAddGuests,
   guestOptionsLoading,
   guestOptionsError,
   loadSuggestedMenu,
@@ -429,7 +434,7 @@ const MealCard = ({
   meal: Meal;
   guests: MealGuest[];
   availableGuests: GuestOption[];
-  onAddGuest: (mealId: string, guestId: string) => Promise<void>;
+  onAddGuests: (mealId: string, guestIds: string[]) => Promise<void>;
   guestOptionsLoading: boolean;
   guestOptionsError: string | null;
   loadSuggestedMenu: (mealId: string) => Promise<SuggestedMenuByCategory>;
@@ -443,14 +448,29 @@ const MealCard = ({
   itemKey: string;
   onOpenGuestModal: (g: { id: string; name: string; mealId: string } | null) => void;
 }) => {
-  const [selectedGuestId, setSelectedGuestId] = useState('');
-  const [submittingGuest, setSubmittingGuest] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
+  const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
+  const [addGuestsError, setAddGuestsError] = useState<string | null>(null);
+  const [addingGuests, setAddingGuests] = useState(false);
 
   const selectableGuests = useMemo(() => (
     availableGuests.filter((option) => !guests.some((existing) => existing.id === option.id))
   ), [availableGuests, guests]);
+
+  const guestChecklistOptions = useMemo(() => (
+    availableGuests.map((option) => ({
+      ...option,
+      alreadyInvited: guests.some((existing) => existing.id === option.id),
+    }))
+  ), [availableGuests, guests]);
+
+  useEffect(() => {
+    setSelectedGuestIds((prev) => prev.filter((id) => {
+      const option = guestChecklistOptions.find((item) => item.id === id);
+      return option && !option.alreadyInvited;
+    }));
+  }, [guestChecklistOptions]);
 
   // defensive locals in case props are temporarily undefined during HMR
   const menuItems = menuByMeal?.[meal.id] ?? createEmptyMenuByCategory();
@@ -458,23 +478,57 @@ const MealCard = ({
   const menuLoadError = menuError?.[meal.id] ?? null;
   const hasMenuItems = MENU_CATEGORIES.some((category) => menuItems[category]?.length > 0);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!selectedGuestId) {
-      setLocalError('Please select a guest to add.');
+  const openInviteModal = () => {
+    setSelectedGuestIds([]);
+    setAddGuestsError(null);
+    setInviteModalOpen(true);
+  };
+
+  const closeInviteModal = () => {
+    if (addingGuests) {
       return;
     }
-    setSubmittingGuest(true);
-    setLocalError(null);
+    setInviteModalOpen(false);
+    setAddGuestsError(null);
+    setSelectedGuestIds([]);
+  };
+
+  const toggleGuestSelection = (guestId: string) => {
+    const option = guestChecklistOptions.find((item) => item.id === guestId);
+    if (!option || option.alreadyInvited || addingGuests) {
+      return;
+    }
+    setSelectedGuestIds((prev) => (
+      prev.includes(guestId)
+        ? prev.filter((id) => id !== guestId)
+        : [...prev, guestId]
+    ));
+  };
+
+  const handleConfirmGuests = async () => {
+    if (selectedGuestIds.length === 0) {
+      setAddGuestsError('Select at least one guest to invite.');
+      return;
+    }
+    setAddingGuests(true);
+    setAddGuestsError(null);
     try {
-      await onAddGuest(meal.id, selectedGuestId);
-      setSelectedGuestId('');
+      await onAddGuests(meal.id, selectedGuestIds);
+      setInviteModalOpen(false);
+      setSelectedGuestIds([]);
     } catch (err: any) {
-      setLocalError(err?.message || 'Failed to add guest.');
+      setAddGuestsError(err?.message || 'Failed to add guests to the meal.');
     } finally {
-      setSubmittingGuest(false);
+      setAddingGuests(false);
     }
   };
+
+  const selectedCount = selectedGuestIds.length;
+  const confirmButtonLabel = addingGuests
+    ? 'Adding...'
+    : selectedCount > 0
+      ? `Add ${selectedCount} ${selectedCount === 1 ? 'guest' : 'guests'}`
+      : 'Add guests';
 
   return (
     <li key={itemKey} className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
@@ -592,43 +646,98 @@ const MealCard = ({
           <div className="mt-3 text-sm text-[#6f5440]">No guests added yet.</div>
         )}
 
-        <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center" onSubmit={handleSubmit}>
-          <div className="flex w-full flex-col gap-2 sm:w-auto">
-            <select
-              value={selectedGuestId}
-              onChange={(event) => setSelectedGuestId(event.target.value)}
-              disabled={guestOptionsLoading || selectableGuests.length === 0}
-              className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-            >
-              <option value="">Select a guest</option>
-              {selectableGuests.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            type="submit"
+            type="button"
             className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
-            disabled={submittingGuest || guestOptionsLoading || selectableGuests.length === 0}
+            onClick={openInviteModal}
+            disabled={guestOptionsLoading}
           >
-            {submittingGuest ? 'Adding...' : 'Add guest'}
+            Invite guests
           </button>
-        </form>
+        </div>
         {guestOptionsLoading && (
           <div className="mt-2 text-xs text-[#6f5440]">Loading guest list...</div>
         )}
         {guestOptionsError && (
           <div className="mt-2 text-xs text-red-500">{guestOptionsError}</div>
         )}
-        {selectableGuests.length === 0 && !guestOptionsLoading && !guestOptionsError && (
+        {!guestOptionsLoading && !guestOptionsError && availableGuests.length === 0 && (
           <div className="mt-2 text-xs text-[#6f5440]">
-            {availableGuests.length === 0
-              ? 'You have no guests saved yet. Add guests from the guests page first.'
-              : 'All of your guests are already assigned to this meal.'}
+            You have no guests saved yet. Add guests from the guests page first.
           </div>
         )}
-        {localError && <div className="mt-2 text-xs text-red-500">{localError}</div>}
+        {!guestOptionsLoading && !guestOptionsError && availableGuests.length > 0 && selectableGuests.length === 0 && (
+          <div className="mt-2 text-xs text-[#6f5440]">
+            All of your guests are already assigned to this meal.
+          </div>
+        )}
       </div>
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8">
+          <div className="w-full max-w-md rounded-2xl border border-white/60 bg-white/95 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-[#2b1c12]">Invite guests to {meal.name}</h3>
+              <button
+                type="button"
+                className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] underline decoration-dotted underline-offset-2 disabled:opacity-60"
+                onClick={closeInviteModal}
+                disabled={addingGuests}
+              >
+                Close
+              </button>
+            </div>
+            {guestOptionsLoading ? (
+              <div className="text-sm text-[#6f5440]">Loading guest list...</div>
+            ) : guestOptionsError ? (
+              <div className="text-sm text-red-500">{guestOptionsError}</div>
+            ) : guestChecklistOptions.length === 0 ? (
+              <div className="text-sm text-[#6f5440]">You have no guests saved yet. Add guests from the guests page first.</div>
+            ) : (
+              <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {guestChecklistOptions.map((guestOption) => (
+                  <li key={`${meal.id}-option-${guestOption.id}`}>
+                    <label className={`flex items-center gap-3 rounded-xl border border-[#f5d8b4]/60 bg-white/80 px-3 py-2 text-sm text-[#3f2a1d] ${guestOption.alreadyInvited ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-[#d37655] text-[#d37655] focus:ring-[#d37655]"
+                        checked={selectedGuestIds.includes(guestOption.id)}
+                        onChange={() => toggleGuestSelection(guestOption.id)}
+                        disabled={guestOption.alreadyInvited || addingGuests}
+                      />
+                      <span className="flex-1 truncate">{guestOption.name}</span>
+                      {guestOption.alreadyInvited ? (
+                        <span className="text-[0.65rem] uppercase tracking-[0.28em] text-[#a77044]">Invited</span>
+                      ) : null}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {addGuestsError && (
+              <div className="mt-3 text-xs text-red-500">{addGuestsError}</div>
+            )}
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-full border border-[#d37655]/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] hover:bg-[#fbe0d4] disabled:opacity-70"
+                onClick={closeInviteModal}
+                disabled={addingGuests}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-[#d37655] px-5 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_12px_28px_-18px_rgba(211,118,85,0.85)] transition disabled:opacity-60"
+                onClick={handleConfirmGuests}
+                disabled={addingGuests || selectedGuestIds.length === 0}
+              >
+                {confirmButtonLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </li>
   );
 };
