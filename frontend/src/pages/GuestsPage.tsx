@@ -2,7 +2,8 @@ import type { FormEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import type { GuestDishRank } from '../features/meals/types';
 
 type Guest = {
   id: string;
@@ -29,7 +30,8 @@ const GuestsPage = () => {
       const res = await api.get('/guests');
       setGuests(res.data || []);
       setError(null);
-    } catch (e) {
+    } catch (error: unknown) {
+      console.error(error);
       setError('Failed to load guests');
     } finally {
       setLoading(false);
@@ -201,9 +203,9 @@ function GuestShareModal({ guest, onClose }: { guest: Guest; onClose: () => void
   );
 }
 
-function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => void }){
+function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => void }) {
   const { accessToken } = useAuth();
-  const [dishes, setDishes] = useState<any[]>([]);
+  const [dishes, setDishes] = useState<GuestDishRank[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingRanks, setPendingRanks] = useState<Record<string, string>>({});
@@ -211,35 +213,52 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
 
   useEffect(() => {
     let mounted = true;
-    async function load(){
+    async function load() {
       setLoading(true);
-      try{
+      try {
         if (!accessToken) throw new Error('Missing access token');
-        const res = await api.get(`/guests/${encodeURIComponent(guest.id)}/dishes`);
+        const res = await api.get<GuestDishRank[]>(`/guests/${encodeURIComponent(guest.id)}/dishes`);
         if (!mounted) return;
-        setDishes(res.data || []);
+        setDishes(Array.isArray(res.data) ? res.data : []);
         setError(null);
-      }catch(e:any){
-        setError(e?.response?.data?.message || 'Failed to load dishes');
-      }finally{
+      } catch (error: unknown) {
+        if (!mounted) return;
+        let message = 'Failed to load dishes';
+        if (error && typeof error === 'object' && 'response' in error) {
+          const response = (error as { response?: { data?: { message?: string } } }).response;
+          message = response?.data?.message ?? message;
+        } else if (error instanceof Error && error.message) {
+          message = error.message;
+        }
+        setError(message);
+      } finally {
         if (mounted) setLoading(false);
       }
     }
-    load();
-    return () => { mounted = false; };
+    void load();
+    return () => {
+      mounted = false;
+    };
   }, [accessToken, guest.id]);
 
-  async function saveRank(dishId: string, rank: number | null){
-    try{
+  async function saveRank(dishId: string, rank: number | null) {
+    try {
       if (!accessToken) throw new Error('Missing access token');
       setSavingRanks((prev) => ({ ...prev, [dishId]: true }));
       await api.post(`/guests/${encodeURIComponent(guest.id)}/dishes/${encodeURIComponent(dishId)}`, { rank });
       toast.success('Rank saved');
-      const res = await api.get(`/guests/${encodeURIComponent(guest.id)}/dishes`);
-      setDishes(res.data || []);
-    }catch(e:any){
-      toast.error(e?.response?.data?.message || 'Failed to save rank');
-    }finally{
+      const res = await api.get<GuestDishRank[]>(`/guests/${encodeURIComponent(guest.id)}/dishes`);
+      setDishes(Array.isArray(res.data) ? res.data : []);
+    } catch (error: unknown) {
+      let message = 'Failed to save rank';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as { response?: { data?: { message?: string } } }).response;
+        message = response?.data?.message ?? message;
+      } else if (error instanceof Error && error.message) {
+        message = error.message;
+      }
+      toast.error(message);
+    } finally {
       setSavingRanks((prev) => {
         const next = { ...prev };
         delete next[dishId];
@@ -273,37 +292,40 @@ function GuestDishesModal({ guest, onClose }: { guest: Guest; onClose: () => voi
             className="max-h-[60vh] space-y-3 overflow-y-auto pr-3"
             style={{ scrollbarGutter: 'stable both-edges' }}
           >
-            {dishes.map(d => (
-              <div key={d.dishId} className="flex items-start justify-between gap-4 rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-4">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-base font-semibold text-[#2b1c12]" title={d.name}>{d.name}</div>
-                  {d.description && <div className="mt-1 overflow-hidden text-ellipsis text-sm leading-relaxed text-[#6f5440]" title={d.description}>{d.description}</div>}
+            {dishes.map((dish) => {
+              const dishKey = dish.dishId ?? dish.dish_id;
+              return (
+                <div key={dishKey} className="flex items-start justify-between gap-4 rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-base font-semibold text-[#2b1c12]" title={dish.name}>{dish.name}</div>
+                    {dish.description && <div className="mt-1 overflow-hidden text-ellipsis text-sm leading-relaxed text-[#6f5440]" title={dish.description}>{dish.description}</div>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Rank</label>
+                    <select
+                      value={Object.prototype.hasOwnProperty.call(pendingRanks, dishKey)
+                        ? pendingRanks[dishKey]
+                        : (dish.rank != null ? String(dish.rank) : '')}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setPendingRanks((prev) => ({ ...prev, [dishKey]: value }));
+                        void saveRank(dishKey, value ? Number(value) : null);
+                      }}
+                      disabled={savingRanks[dishKey] === true}
+                      className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50 disabled:opacity-60"
+                    >
+                      <option value="">None</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                    </select>
+                    {savingRanks[dishKey] ? (
+                      <span className="text-[0.65rem] uppercase tracking-[0.3em] text-[#a77044]">Saving…</span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]">Rank</label>
-                  <select
-                    value={Object.prototype.hasOwnProperty.call(pendingRanks, d.dishId)
-                      ? pendingRanks[d.dishId]
-                      : (d.rank != null ? String(d.rank) : '')}
-                    onChange={e => {
-                      const value = e.target.value;
-                      setPendingRanks((prev) => ({ ...prev, [d.dishId]: value }));
-                      void saveRank(d.dishId, value ? Number(value) : null);
-                    }}
-                    disabled={savingRanks[d.dishId] === true}
-                    className="rounded-full border border-[#f5d8b4] bg-white/90 px-3 py-1.5 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50 disabled:opacity-60"
-                  >
-                    <option value="">None</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                  </select>
-                  {savingRanks[d.dishId] ? (
-                    <span className="text-[0.65rem] uppercase tracking-[0.3em] text-[#a77044]">Saving…</span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -344,9 +366,15 @@ function AddGuestButton({ onAdded }: { onAdded: () => Promise<void> }) {
       toast.success('Guest added');
       closeModal();
       await onAdded();
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Failed to add guest';
-      toast.error(msg);
+    } catch (error: unknown) {
+      let message = 'Failed to add guest';
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as { response?: { data?: { message?: string } } }).response;
+        message = response?.data?.message ?? message;
+      } else if (error instanceof Error && error.message) {
+        message = error.message;
+      }
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

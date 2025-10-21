@@ -61,9 +61,15 @@ const GuestRankPage = () => {
           rank: typeof dish.rank === 'number' ? dish.rank : null,
         })));
         setIsDone(false);
-      } catch (err: any) {
-        const msg = err?.response?.data?.message || 'We could not load the dishes for this link.';
-        setError(msg);
+      } catch (err: unknown) {
+        let message = 'We could not load the dishes for this link.';
+        if (err && typeof err === 'object' && 'response' in err) {
+          const response = (err as { response?: { data?: { message?: string } } }).response;
+          message = response?.data?.message ?? message;
+        } else if (err instanceof Error && err.message) {
+          message = err.message;
+        }
+        setError(message);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -108,9 +114,15 @@ const GuestRankPage = () => {
         ),
       );
       toast.success('Rank saved');
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || 'We could not save that rank.';
-      toast.error(msg);
+    } catch (err: unknown) {
+      let message = 'We could not save that rank.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const response = (err as { response?: { data?: { message?: string } } }).response;
+        message = response?.data?.message ?? message;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      toast.error(message);
     } finally {
       setSaving((prev) => {
         const next = { ...prev };

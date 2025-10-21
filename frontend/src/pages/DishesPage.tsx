@@ -1,54 +1,53 @@
-
-import type { FormEvent, ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import api from '../lib/axios';
-import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
-
-type Dish = {
-  id: string;
-  name: string;
-  description?: string;
-  category?: 'main' | 'side' | 'dessert' | 'other';
-  created_at?: string;
-  updated_at?: string;
-};
-
-type DishCategory = NonNullable<Dish['category']>;
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../context/useAuth";
+import { fetchDishes } from "../features/dishes/api/dishesApi";
+import { AddDishButton } from "../features/dishes/components/AddDishButton";
+import { DishList } from "../features/dishes/components/DishList";
+import type { Dish } from "../features/dishes/types";
 
 const DishesPage = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, isInitializing } = useAuth();
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refreshDishes = useCallback(async () => {
     setLoading(true);
     try {
       if (!accessToken) {
-        setError('Please log in to view dishes.');
+        setError("Please log in to view dishes.");
         setDishes([]);
         return;
       }
-      const res = await api.get('/dishes');
-      setDishes(res.data || []);
+      const data = await fetchDishes();
+      setDishes(data);
       setError(null);
-    } catch (e) {
-      setError('Failed to load dishes');
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load dishes");
     } finally {
       setLoading(false);
     }
   }, [accessToken]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (isInitializing) {
+      return;
+    }
+    void refreshDishes();
+  }, [isInitializing, refreshDishes]);
+
+  useEffect(() => {
+    if (!isInitializing && !accessToken) {
+      setDishes([]);
+    }
+  }, [accessToken, isInitializing]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#fdf4e3] text-[#3f2a1d]">
       <div className="pointer-events-none absolute -top-32 -right-20 h-96 w-96 rounded-full bg-[#fde4c6] opacity-60 blur-3xl"></div>
       <div className="pointer-events-none absolute top-1/2 -left-24 h-96 w-96 -translate-y-1/2 rounded-full bg-[#f4978e]/70 opacity-30 blur-3xl"></div>
-  <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-16 sm:px-6 sm:py-20 lg:px-12 lg:py-24">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-16 sm:px-6 sm:py-20 lg:px-12 lg:py-24">
         <header className="mb-10 max-w-3xl">
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-[#a77044] sm:text-xs sm:tracking-[0.35em]">Your pantry of favorites</p>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-[#2b1c12] sm:text-4xl">Keep your best dishes ready to share.</h1>
@@ -61,7 +60,7 @@ const DishesPage = () => {
               <h2 className="text-2xl font-semibold text-[#2b1c12]">Dish library</h2>
               <p className="text-sm text-[#6f5440]">Browse and fine tune your collection.</p>
             </div>
-            <AddDishButton onAdded={refresh} />
+            <AddDishButton onAdded={refreshDishes} />
           </div>
 
           <DishList dishes={dishes} loading={loading} error={error} />
@@ -69,262 +68,6 @@ const DishesPage = () => {
       </div>
     </div>
   );
-}
-
-const DishList = ({ dishes, loading, error }: { dishes: Dish[]; loading: boolean; error: string | null }) => {
-  if (loading) return <ListShell><div className="text-sm text-[#6f5440]">Loading dishes...</div></ListShell>;
-  if (error) return <ListShell><div className="text-sm text-red-500">{error}</div></ListShell>;
-
-  if (!dishes || dishes.length === 0) {
-    return (
-      <ListShell>
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-[#6f5440]">
-          <span>No dishes yet.</span>
-          <span>Add your first signature recipe to get started.</span>
-        </div>
-      </ListShell>
-    );
-  }
-
-  const CATEGORY_ORDER: DishCategory[] = ['main', 'side', 'dessert', 'other'];
-  const CATEGORY_LABELS: Record<DishCategory, string> = {
-    main: 'Main dishes',
-    side: 'Side dishes',
-    dessert: 'Desserts',
-    other: 'Other',
-  };
-
-  const { grouped, orderedCategories } = useMemo(() => {
-    const buckets = dishes.reduce<Record<DishCategory, Dish[]>>((acc, dish) => {
-      const category = (dish.category ?? 'other') as DishCategory;
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(dish);
-      return acc;
-    }, {} as Record<DishCategory, Dish[]>);
-
-    const extras = (Object.keys(buckets) as DishCategory[]).filter((key) => !CATEGORY_ORDER.includes(key));
-    const categories = [...CATEGORY_ORDER, ...extras]
-      .filter((category, index, array) => array.indexOf(category) === index && (buckets[category]?.length ?? 0) > 0) as DishCategory[];
-
-    categories.forEach((category) => {
-      buckets[category] = buckets[category].slice().sort((a, b) => a.name.localeCompare(b.name));
-    });
-
-    return { grouped: buckets, orderedCategories: categories };
-  }, [dishes]);
-
-  const [selectedCategory, setSelectedCategory] = useState<DishCategory | null>(orderedCategories[0] ?? null);
-
-  useEffect(() => {
-    if (orderedCategories.length === 0) {
-      if (selectedCategory !== null) setSelectedCategory(null);
-      return;
-    }
-    if (!selectedCategory || !orderedCategories.includes(selectedCategory)) {
-      setSelectedCategory(orderedCategories[0]);
-    }
-  }, [orderedCategories, selectedCategory]);
-
-  const activeCategory: DishCategory | null = selectedCategory && grouped[selectedCategory] ? selectedCategory : orderedCategories[0] ?? null;
-  const visibleDishes = activeCategory ? grouped[activeCategory] ?? [] : [];
-
-  return (
-    <ListShell>
-      <div className="space-y-6">
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max gap-2 sm:flex-wrap sm:min-w-0">
-            {orderedCategories.map((category) => {
-              const isActive = category === activeCategory;
-              const count = grouped[category]?.length ?? 0;
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  className={`whitespace-nowrap rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] transition ${isActive ? 'border-[#d37655] bg-[#d37655] text-white shadow-[0_8px_20px_-10px_rgba(211,118,85,0.7)]' : 'border-[#f5d8b4] text-[#a77044] hover:border-[#d37655] hover:text-[#d37655]'}`}
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {CATEGORY_LABELS[category] ?? category.replace(/^[a-z]/, (c) => c.toUpperCase())}
-                  <span className="ml-2 text-[0.65rem] font-normal tracking-[0.2em]">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {activeCategory && visibleDishes.length > 0 ? (
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.35em] text-[#a77044]">
-              {CATEGORY_LABELS[activeCategory] ?? activeCategory.replace(/^[a-z]/, (c) => c.toUpperCase())}
-            </h3>
-            <ul className="space-y-3">
-              {visibleDishes.map((dish) => (
-                <li key={dish.id} className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)] transition duration-150 hover:-translate-y-0.5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="text-base font-semibold text-[#2b1c12]">{dish.name}</div>
-                      {dish.description && <div className="text-sm leading-relaxed text-[#6f5440]">{dish.description}</div>}
-                    </div>
-                    <div className="flex flex-col items-end gap-2 text-xs uppercase tracking-widest text-[#a77044]/90">
-                      {dish.created_at && <span>Added {new Date(dish.created_at).toLocaleDateString()}</span>}
-                      {dish.updated_at && <span>Updated {new Date(dish.updated_at).toLocaleDateString()}</span>}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-[#f5d8b4]/60 bg-white/60 p-6 text-sm text-[#6f5440]">
-            No dishes in this category yet.
-          </div>
-        )}
-      </div>
-    </ListShell>
-  );
 };
 
 export default DishesPage;
-
-function AddDishButton({ onAdded }: { onAdded: () => Promise<void> }) {
-  const { accessToken } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<'main' | 'side' | 'dessert' | 'other'>('other');
-  const [submitting, setSubmitting] = useState(false);
-
-  const resetForm = () => {
-    setName('');
-    setDescription('');
-    setCategory('other');
-  };
-
-  const closeModal = () => {
-    resetForm();
-    setOpen(false);
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!name.trim()) {
-      toast.error('Please enter a dish name');
-      return;
-    }
-    if (!accessToken) {
-      toast.error('Missing access token. Please login again.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await api.post('/dishes', { name: name.trim(), description: description.trim() || undefined, category });
-      toast.success('Dish added');
-      closeModal();
-      await onAdded();
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || 'Failed to add dish';
-      toast.error(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="w-full max-w-xs">
-        <button
-          type="button"
-          className="inline-flex w-full items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white shadow-lg shadow-[#d37655]/30 transition hover:-translate-y-0.5"
-          onClick={() => setOpen(true)}
-        >
-          Add dish
-        </button>
-      </div>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8"
-          onClick={() => {
-            if (submitting) return;
-            closeModal();
-          }}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl sm:p-6"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <form className="space-y-3" onSubmit={handleSubmit}>
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-[#a77044]">Add dish</h3>
-                <button
-                  type="button"
-                  className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] underline decoration-dotted disabled:opacity-60"
-                  onClick={() => closeModal()}
-                  disabled={submitting}
-                >
-                  Close
-                </button>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="dish-name">Dish name</label>
-                <input
-                  id="dish-name"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="dish-description">Description</label>
-                <textarea
-                  id="dish-description"
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor="dish-category">Category</label>
-                <select
-                  id="dish-category"
-                  value={category}
-                  onChange={e => setCategory(e.target.value as typeof category)}
-                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/90 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
-                >
-                  <option value="main">Main</option>
-                  <option value="side">Side</option>
-                  <option value="dessert">Dessert</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Adding...' : 'Save dish'}
-                </button>
-                <button
-                  type="button"
-                  className="text-sm font-medium text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655] disabled:opacity-60"
-                  onClick={() => closeModal()}
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-const ListShell = ({ children }: { children: ReactNode }) => {
-  return (
-    <div className="mt-8 min-h-[220px] rounded-2xl border border-white/60 bg-white/60 p-4 backdrop-blur sm:min-h-[280px]">
-      {children}
-    </div>
-  );
-};

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import PlanHeading from '../components/PlanMealHeading';
 import api from '../lib/axios';
 import toast from 'react-hot-toast';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
 const LoginPage = () => {
   const [mode, setMode] = useState<'idle' | 'login' | 'signup'>('idle');
@@ -56,15 +56,23 @@ const LoginPage = () => {
 
       toast.success(mode === 'login' ? 'Logged in' : 'Signed up and logged in');
       navigate('/home');
-    } catch (e: any) {
-      const msg = e?.response?.data?.message || e?.message || 'Request failed';
+    } catch (error: unknown) {
+      let message = 'Request failed';
+      let status: number | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as { response?: { data?: { message?: string }; status?: number } }).response;
+        message = response?.data?.message ?? message;
+        status = response?.status;
+      } else if (error instanceof Error && error.message) {
+        message = error.message;
+      }
       // friendly messages for common cases
-      if (e?.response?.status === 401) {
+      if (status === 401) {
         toast.error('Invalid username or password');
       } else {
-        toast.error(msg);
+        toast.error(message);
       }
-      setError(msg);
+      setError(message);
     } finally {
       setLoading(false);
     }
