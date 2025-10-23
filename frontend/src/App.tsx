@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+
 import { useAuth } from './context/useAuth';
 import AppNavBar from './components/AppNavBar';
 import HomePage from './pages/HomePage';
