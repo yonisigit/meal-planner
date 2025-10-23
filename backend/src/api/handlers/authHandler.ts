@@ -62,7 +62,7 @@ export async function loginHandler(req: Request, res: Response) {
       httpOnly: true,
       secure: false,
       sameSite: 'strict',
-      maxAge: config.jwt.refreshExpiry
+      maxAge: config.jwt.refreshExpiry * 1000, // maxAge is ms, refreshExpiry is in seconds
     }).
     json({
       userID: user.id,

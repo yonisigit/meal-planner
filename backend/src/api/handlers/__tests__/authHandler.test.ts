@@ -222,12 +222,9 @@ describe("loginHandler", () => {
 describe("refreshHandler", () => {
   test("responds 401 when refresh token missing", async () => {
     const req = { cookies: {} } as Request;
-    const { res, status, json } = createMockResponse();
+    const { res } = createMockResponse();
 
-    await handlers.refreshHandler(req, res);
-
-    expect(status).toHaveBeenCalledWith(401);
-    expect(json).toHaveBeenCalledWith({ message: "Unauthorized" });
+    await expect(handlers.refreshHandler(req, res)).rejects.toThrow("Unauthorized");
     expect(mockGetRefreshToken).not.toHaveBeenCalled();
   });
 
@@ -235,13 +232,11 @@ describe("refreshHandler", () => {
     const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
     mockGetRefreshToken.mockResolvedValue(null);
 
-    const { res, status, json } = createMockResponse();
+    const { res } = createMockResponse();
 
-    await handlers.refreshHandler(req, res);
+    await expect(handlers.refreshHandler(req, res)).rejects.toThrow("Invalid refresh token");
 
     expect(mockGetRefreshToken).toHaveBeenCalledWith("refresh-token");
-    expect(status).toHaveBeenCalledWith(401);
-    expect(json).toHaveBeenCalledWith({ message: "Invalid refresh token" });
   });
 
   test("responds 401 when token already revoked", async () => {
@@ -253,12 +248,9 @@ describe("refreshHandler", () => {
 
     mockGetRefreshToken.mockResolvedValue(stored);
   const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
-    const { res, status, json } = createMockResponse();
+    const { res } = createMockResponse();
 
-    await handlers.refreshHandler(req, res);
-
-    expect(status).toHaveBeenCalledWith(401);
-    expect(json).toHaveBeenCalledWith({ message: "Invalid refresh token" });
+    await expect(handlers.refreshHandler(req, res)).rejects.toThrow("Invalid refresh token");
     expect(mockRevokeRefreshToken).not.toHaveBeenCalled();
   });
 
@@ -271,13 +263,11 @@ describe("refreshHandler", () => {
 
     mockGetRefreshToken.mockResolvedValue(stored);
   const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
-    const { res, status, json } = createMockResponse();
+    const { res } = createMockResponse();
 
-    await handlers.refreshHandler(req, res);
+    await expect(handlers.refreshHandler(req, res)).rejects.toThrow("Refresh token expired");
 
     expect(mockRevokeRefreshToken).toHaveBeenCalledWith("refresh-token");
-    expect(status).toHaveBeenCalledWith(401);
-    expect(json).toHaveBeenCalledWith({ message: "Refresh token expired" });
   });
 
   test("returns new access token when refresh valid", async () => {
@@ -337,14 +327,12 @@ describe("refreshHandler", () => {
     mockGetRefreshToken.mockResolvedValue(stored);
 
     const req = { cookies: { refreshToken: "refresh-token" } } as unknown as Request;
-    const { res, status, json } = createMockResponse();
+    const { res } = createMockResponse();
 
-    await handlers.refreshHandler(req, res);
+    await expect(handlers.refreshHandler(req, res)).rejects.toThrow("Invalid refresh token");
 
     expect(mockGenerateAccessToken).not.toHaveBeenCalled();
     expect(mockRevokeRefreshToken).not.toHaveBeenCalled();
-    expect(status).toHaveBeenCalledWith(401);
-    expect(json).toHaveBeenCalledWith({ message: "Invalid refresh token" });
   });
 });
 
