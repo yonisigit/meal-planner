@@ -50,7 +50,10 @@ export function authenticateUserId(req: Request){
   const token = getBearerToken(req);
   try {
     const decoded = validateToken(token, config.jwt.secret);
-    return decoded.payload?.sub; // userId
+    if (!decoded.valid || decoded.expired || !decoded.payload) {
+      throw new Error();
+    }
+    return decoded.payload.sub; // userId
   } catch (error) {
     throw new HttpError(401, "Failed to authenticate token");
   }

@@ -6,7 +6,8 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from './context/AuthProvider';
 
-createRoot(document.getElementById('root')!).render(
+const root = createRoot(document.getElementById('root')!)
+root.render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
@@ -15,4 +16,4 @@ createRoot(document.getElementById('root')!).render(
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
-)
+);

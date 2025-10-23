@@ -24,7 +24,7 @@ export async function saveRefreshToken(token: string, userId: string) {
   const newToken = await db.insert(refreshTokensTable).values({
     token: token,
     userId: userId,
-    expiresAt: Date.now() + config.jwt.refreshExpiry 
+    expiresAt: Date.now() + (config.jwt.refreshExpiry * 1000) // Date.Now() is in ms, refreshExpiry is in seconds 
   }).returning();
   return newToken;
 }

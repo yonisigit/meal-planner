@@ -75,19 +75,16 @@ export async function loginHandler(req: Request, res: Response) {
 export async function refreshHandler(req: Request, res: Response) {
   const refreshToken = req.cookies.refreshToken;
   if (!refreshToken) {
-    res.status(401).json({ "message": "Unauthorized" });
-    return;
+    throw new HttpError(401, "Unauthorized");
   }
 
   const savedRefreshToken = await getRefreshToken(refreshToken);
   if (!savedRefreshToken || savedRefreshToken.revokedAt) {
-    res.status(401).json({ "message": "Invalid refresh token" });
-    return;
+    throw new HttpError(401, "Invalid refresh token");
   }
   if (savedRefreshToken.expiresAt < Date.now()) {
     await revokeRefreshToken(refreshToken);
-    res.status(401).json({ "message": "Refresh token expired" });
-    return;
+    throw new HttpError(401, "Refresh token expired");
   }
 
   const accessToken = generateAccessToken(savedRefreshToken.userId, config.jwt.secret);
