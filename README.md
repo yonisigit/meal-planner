@@ -1,3 +1,5 @@
+[![CI Tests](https://github.com/yonisirote/hostmate/actions/workflows/tests.yml/badge.svg)](https://github.com/yonisirote/hostmate/actions/workflows/tests.yml)
+
 # 🍽️ HostMate
 
 **HostMate** is a web application designed to assist hosts in organizing meals. It facilitates the uploading and management of dishes and guests, enables the collection of guest preferences by sending guests ranking links, and generates personalized menus for each meal tailored to individual guest tastes.

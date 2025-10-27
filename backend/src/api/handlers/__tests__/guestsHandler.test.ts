@@ -35,6 +35,7 @@ beforeEach(async () => {
 
   jest.unstable_mockModule("../../../db/queries/guestQueries.js", () => ({
     addGuest: mockAddGuest,
+    deleteGuest: jest.fn(),
     getDishForUser: jest.fn(),
     getGuestByRankToken: jest.fn(),
     getGuestDishes: jest.fn(),
@@ -42,6 +43,7 @@ beforeEach(async () => {
     getGuestsByUserId: jest.fn(),
     getGuestUser: mockGetGuestUser,
     rankDish: jest.fn(),
+    updateGuest: jest.fn(),
   }));
 
   jest.unstable_mockModule("../../../db/queries/userQueries.js", () => ({

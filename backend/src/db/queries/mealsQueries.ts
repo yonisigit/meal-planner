@@ -120,3 +120,12 @@ export async function getOtherMealRankings(mealId: string) {
 export async function deleteMeal(mealId: string) {
   await db.delete(mealsTable).where(eq(mealsTable.id, mealId));
 }
+
+export async function editMeal(mealId: string, mealDate: string, mealName: string, mealDescription?: string) {
+  const updatedMeal = await db.update(mealsTable).set({
+    date: mealDate,
+    name: mealName,
+    description: mealDescription
+  }).where(eq(mealsTable.id, mealId)).returning();
+  return updatedMeal;
+}

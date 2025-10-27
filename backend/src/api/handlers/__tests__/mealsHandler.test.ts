@@ -40,6 +40,7 @@ beforeEach(async () => {
     getSideMealRankings: jest.fn(),
     getDessertMealRankings: jest.fn(),
     getOtherMealRankings: jest.fn(),
+    deleteMeal: jest.fn(),
     removeGuestFromMeal: mockRemoveGuestFromMeal,
   }));
 

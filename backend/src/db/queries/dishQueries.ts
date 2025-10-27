@@ -18,7 +18,7 @@ export async function getDishesByUserId(userId: string){
   return dishes;
 }
 
-export async function editDish(dishId: string, dishName: string, dishDescription: string, dishCategory: Dish["category"]){
+export async function editDish(dishId: string, dishName: string, dishCategory: Dish["category"], dishDescription?: string){
   const [updatedDish] = await db.update(dishesTable).set({
     name: dishName,
     description: dishDescription,

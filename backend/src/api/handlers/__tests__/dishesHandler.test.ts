@@ -38,6 +38,8 @@ beforeEach(async () => {
     addDish: mockAddDish,
     getDishes: jest.fn(),
     getDishesByUserId: mockGetDishesByUserId,
+    editDish: jest.fn(),
+    deleteDish: jest.fn(),
   }));
 
   handlers = await import("../dishesHandler.js");
