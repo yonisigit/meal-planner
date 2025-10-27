@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { HttpError } from "../errors.js";
 import { addDish, deleteDish, editDish, getDishes, getDishesByUserId } from "../../db/queries/dishQueries.js";
 import { authenticateUserId } from "../../auth.js";
+import { DISH_CATEGORIES } from "../../db/schema.js";
 
 
 export async function getDishesHandler(_: Request, res: Response){
@@ -17,6 +18,10 @@ export async function addDishHandler(req: Request, res: Response){
   const {name, description, category} = req.body;
   if (!name || !category){
     throw new HttpError(400, "Missing dish information.");
+  }
+
+  if (!DISH_CATEGORIES.includes(category)) {
+    throw new HttpError(400, "Invalid dish category.");
   }
 
   const dish = await addDish({
@@ -52,7 +57,11 @@ export async function editDishHandler(req: Request, res: Response){
     throw new HttpError(400, "Missing dish information.");
   }
 
-  const updatedDish = await editDish(dishId, name, description, category);
+  if (!DISH_CATEGORIES.includes(category)) {
+    throw new HttpError(400, "Invalid dish category.");
+  }
+
+  const updatedDish = await editDish(dishId, name, category, description);
   res.status(200).json(updatedDish);
 }
 

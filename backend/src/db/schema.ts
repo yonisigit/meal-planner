@@ -1,6 +1,7 @@
 import { text, sqliteTable, integer, unique } from "drizzle-orm/sqlite-core";
 import { randomUUID } from "crypto";
 
+
 export const usersTable = sqliteTable("users", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   name: text("name").notNull(),
@@ -23,11 +24,13 @@ export const guestsTable = sqliteTable("guests", {
 
 export type Guest = typeof guestsTable.$inferInsert;
 
+export const DISH_CATEGORIES = ["main", "side", "dessert", "other"] as const;
+
 export const dishesTable = sqliteTable("dishes", {
   id: text("id").primaryKey().notNull().$defaultFn(() => randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
-  category: text("category", {enum: ["main", "side", "dessert", "other"]}).notNull().default("other"),
+  category: text("category", {enum: DISH_CATEGORIES}).notNull().default("other"),
   userId: text("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()).$onUpdate(() => new Date().toISOString()),
