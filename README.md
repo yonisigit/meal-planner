@@ -5,7 +5,7 @@
 ---
 ## 🔗 Live Link
 
-Start planning your next gathering! [HostMate](https://meal-planner-production-ed5f.up.railway.app/)
+Start planning your next gathering! [HostMate](https://hostmate.up.railway.app/)
 
 ## 📖 Usage
 
