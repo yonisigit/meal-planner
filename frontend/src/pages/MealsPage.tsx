@@ -9,6 +9,7 @@ import {
   fetchMeals,
   fetchSuggestedMenu,
   removeGuestFromMeal,
+  updateMeal,
 } from '../features/meals/api/mealsApi';
 import { CreateMealButton } from '../features/meals/components/CreateMealButton';
 import { GuestDishesModal } from '../features/meals/components/GuestDishesModal';
@@ -203,6 +204,27 @@ const MealsPage = () => {
     [refreshMeals],
   );
 
+  const handleUpdateMeal = useCallback(
+    async (mealId: string, payload: { name: string; date: string; description?: string }) => {
+      try {
+        await updateMeal(mealId, payload);
+        toast.success('Meal updated');
+        await refreshMeals();
+      } catch (err: unknown) {
+        let message = 'Failed to update meal.';
+        if (err && typeof err === 'object' && 'response' in err) {
+          const response = (err as { response?: { data?: { message?: string } } }).response;
+          message = response?.data?.message ?? message;
+        } else if (err instanceof Error && err.message) {
+          message = err.message;
+        }
+        toast.error(message);
+        throw new Error(message);
+      }
+    },
+    [refreshMeals],
+  );
+
   if (isInitializing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fdf4e3] text-[#6f5440]">
@@ -249,6 +271,7 @@ const MealsPage = () => {
               menuError={menuError}
               onOpenGuestModal={(guest) => setModalGuest(guest)}
               onDeleteMeal={handleDeleteMeal}
+              onUpdateMeal={handleUpdateMeal}
             />
           )}
           {modalGuest && (

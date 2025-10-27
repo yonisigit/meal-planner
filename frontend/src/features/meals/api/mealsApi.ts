@@ -58,6 +58,13 @@ export async function deleteMeal(mealId: string): Promise<void> {
   await api.delete(`/meals/${mealId}`);
 }
 
+export async function updateMeal(
+  mealId: string,
+  payload: { name: string; date: string; description?: string },
+): Promise<void> {
+  await api.put(`/meals/${mealId}`, payload);
+}
+
 export async function saveGuestDishRank(guestId: string, dishId: string, rank: number | null) {
   const response = await api.post(`/guests/${encodeURIComponent(guestId)}/dishes/${encodeURIComponent(dishId)}`, { rank });
   return response.data;

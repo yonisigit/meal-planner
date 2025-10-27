@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { formatDisplayDate } from "../../../utils/date";
 import type { GuestOption, Meal, MealGuest, SuggestedMenuByCategory } from "../types";
 import { MENU_CATEGORIES } from "../types";
@@ -20,9 +21,21 @@ type MealCardProps = {
   onLoadMenu: (mealId: string) => Promise<SuggestedMenuByCategory>;
   onOpenGuestModal: (guest: ModalGuest) => void;
   onDeleteMeal: (mealId: string) => Promise<void>;
+  onUpdateMeal: (mealId: string, payload: { name: string; date: string; description?: string }) => Promise<void>;
 };
 
 type GuestChecklistOption = GuestOption & { alreadyInvited: boolean };
+
+function normalizeMealDate(value: string): string {
+  if (!value) {
+    return "";
+  }
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10);
+  }
+  return value.slice(0, 10);
+}
 
 export function MealCard({
   meal,
@@ -37,6 +50,7 @@ export function MealCard({
   onLoadMenu,
   onOpenGuestModal,
   onDeleteMeal,
+  onUpdateMeal,
 }: MealCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
@@ -46,6 +60,12 @@ export function MealCard({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingMeal, setIsDeletingMeal] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isEditModalOpen, setEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState(meal.name);
+  const [editDate, setEditDate] = useState(() => normalizeMealDate(meal.date));
+  const [editDescription, setEditDescription] = useState(meal.description ?? "");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isUpdatingMeal, setIsUpdatingMeal] = useState(false);
 
   const guestChecklistOptions: GuestChecklistOption[] = useMemo(
     () =>
@@ -64,6 +84,16 @@ export function MealCard({
       }),
     );
   }, [guestChecklistOptions]);
+
+  useEffect(() => {
+    if (isEditModalOpen) {
+      return;
+    }
+    setEditName(meal.name);
+    setEditDescription(meal.description ?? "");
+    setEditDate(normalizeMealDate(meal.date));
+    setEditError(null);
+  }, [isEditModalOpen, meal]);
 
   const hasMenuItems = MENU_CATEGORIES.some((category) => menuItems[category]?.length > 0);
 
@@ -154,6 +184,57 @@ export function MealCard({
     }
   };
 
+  const openEditModal = () => {
+    setEditName(meal.name);
+    setEditDescription(meal.description ?? "");
+    setEditDate(normalizeMealDate(meal.date));
+    setEditError(null);
+    setEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    if (isUpdatingMeal) {
+      return;
+    }
+    setEditModalOpen(false);
+    setEditError(null);
+    setEditName(meal.name);
+    setEditDescription(meal.description ?? "");
+    setEditDate(normalizeMealDate(meal.date));
+  };
+
+  const handleEditSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      setEditError("Please enter a meal name.");
+      return;
+    }
+    if (!editDate) {
+      setEditError("Please choose a date.");
+      return;
+    }
+
+    setIsUpdatingMeal(true);
+    setEditError(null);
+    try {
+      await onUpdateMeal(meal.id, {
+        name: trimmedName,
+        date: editDate,
+        description: editDescription.trim() || undefined,
+      });
+      setEditModalOpen(false);
+    } catch (err: unknown) {
+      let message = "Failed to update meal.";
+      if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      setEditError(message);
+    } finally {
+      setIsUpdatingMeal(false);
+    }
+  };
+
   return (
     <li className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -173,6 +254,31 @@ export function MealCard({
                 <span className="font-bold tracking-[0.25em]">MENU</span>
                 <span className="tracking-normal">{showMenu ? "Hide suggestions" : "Show suggestions"}</span>
                 <span aria-hidden>{showMenu ? "▴" : "▾"}</span>
+              </button>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d37655]/30 text-[#d37655] transition hover:bg-[#fbe0d4]"
+                onClick={() => {
+                  if (isUpdatingMeal) {
+                    return;
+                  }
+                  openEditModal();
+                }}
+                aria-label="Edit meal"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
               </button>
               <button
                 type="button"
@@ -261,6 +367,104 @@ export function MealCard({
             <div className="mt-2 text-xs text-[#6f5440]">All of your guests are already assigned to this meal.</div>
           )}
       </div>
+
+      {isEditModalOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8"
+          onClick={() => {
+            if (isUpdatingMeal) {
+              return;
+            }
+            closeEditModal();
+          }}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur sm:rounded-3xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <form className="space-y-3" onSubmit={handleEditSubmit}>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor={`meal-name-${meal.id}`}>
+                    Meal name
+                  </label>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] underline decoration-dotted disabled:opacity-60"
+                    onClick={closeEditModal}
+                    disabled={isUpdatingMeal}
+                  >
+                    Close
+                  </button>
+                </div>
+                <input
+                  id={`meal-name-${meal.id}`}
+                  value={editName}
+                  onChange={(event) => {
+                    setEditName(event.target.value);
+                    if (editError) {
+                      setEditError(null);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor={`meal-date-${meal.id}`}>
+                  Meal date
+                </label>
+                <input
+                  id={`meal-date-${meal.id}`}
+                  type="date"
+                  value={editDate}
+                  onChange={(event) => {
+                    setEditDate(event.target.value);
+                    if (editError) {
+                      setEditError(null);
+                    }
+                  }}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.3em] text-[#a77044]" htmlFor={`meal-description-${meal.id}`}>
+                  Description
+                </label>
+                <textarea
+                  id={`meal-description-${meal.id}`}
+                  value={editDescription}
+                  onChange={(event) => {
+                    setEditDescription(event.target.value);
+                    if (editError) {
+                      setEditError(null);
+                    }
+                  }}
+                  rows={3}
+                  className="w-full rounded-xl border border-[#f5d8b4] bg-white/95 px-4 py-2 text-sm text-[#3f2a1d] focus:outline-none focus:ring-2 focus:ring-[#d37655]/50"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-5 py-2 text-sm font-medium text-white transition hover:-translate-y-0.5 disabled:opacity-70"
+                  disabled={isUpdatingMeal}
+                >
+                  {isUpdatingMeal ? "Saving..." : "Save changes"}
+                </button>
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-[#a15a38] underline decoration-[#f5d8b4] underline-offset-4 transition hover:text-[#d37655] disabled:opacity-60"
+                  onClick={closeEditModal}
+                  disabled={isUpdatingMeal}
+                >
+                  Cancel
+                </button>
+              </div>
+              {editError ? <p className="text-xs text-red-500">{editError}</p> : null}
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <GuestInviteModal
         mealName={meal.name}
