@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import toast from "react-hot-toast";
 import type { Dish } from "../types";
 import { deleteDish } from "../api/dishesApi";
@@ -13,6 +14,7 @@ export function DishCard({ dish, onRefresh }: DishCardProps) {
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const portalTarget = typeof window === "undefined" ? null : document.body;
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -97,27 +99,33 @@ export function DishCard({ dish, onRefresh }: DishCardProps) {
           </div>
         </div>
       </div>
-      {showEdit ? (
-        <EditDishModal
-          dish={dish}
-          onClose={() => setShowEdit(false)}
-          onUpdated={onRefresh}
-        />
-      ) : null}
-      {showDelete ? (
-        <DeleteDishModal
-          dishName={dish.name}
-          onCancel={() => {
-            if (isDeleting) return;
-            setShowDelete(false);
-          }}
-          onConfirm={() => {
-            if (isDeleting) return;
-            void handleDelete();
-          }}
-          isDeleting={isDeleting}
-        />
-      ) : null}
+      {showEdit && portalTarget
+        ? createPortal(
+            <EditDishModal
+              dish={dish}
+              onClose={() => setShowEdit(false)}
+              onUpdated={onRefresh}
+            />, 
+            portalTarget
+          )
+        : null}
+      {showDelete && portalTarget
+        ? createPortal(
+            <DeleteDishModal
+              dishName={dish.name}
+              onCancel={() => {
+                if (isDeleting) return;
+                setShowDelete(false);
+              }}
+              onConfirm={() => {
+                if (isDeleting) return;
+                void handleDelete();
+              }}
+              isDeleting={isDeleting}
+            />, 
+            portalTarget
+          )
+        : null}
     </li>
   );
 }
