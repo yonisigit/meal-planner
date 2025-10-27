@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { HttpError } from "../errors.js";
-import { addDish, getDishes, getDishesByUserId } from "../../db/queries/dishQueries.js";
+import { addDish, deleteDish, editDish, getDishes, getDishesByUserId } from "../../db/queries/dishQueries.js";
 import { authenticateUserId } from "../../auth.js";
 
 
@@ -41,3 +41,31 @@ export async function getDishesByUserHandler(req: Request, res: Response){
 
 
 
+export async function editDishHandler(req: Request, res: Response){
+  const userId = authenticateUserId(req); 
+  if (!userId) {
+    throw new HttpError(401, "Unauthorized");
+  }
+  const dishId = req.params.dishId;
+  const { name, description, category } = req.body;
+  if (!dishId || !name || !category) {
+    throw new HttpError(400, "Missing dish information.");
+  }
+
+  const updatedDish = await editDish(dishId, name, description, category);
+  res.status(200).json(updatedDish);
+}
+
+export async function deleteDishHandler(req: Request, res: Response){
+  const userId = authenticateUserId(req); 
+  if (!userId) {
+    throw new HttpError(401, "Unauthorized");
+  }
+  const { dishId } = req.params;
+  if (!dishId) {
+    throw new HttpError(400, "Missing dish information.");
+  }
+
+  await deleteDish(dishId);
+  res.status(200).json({ message: "Dish deleted successfully." });
+}

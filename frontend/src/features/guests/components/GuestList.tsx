@@ -6,9 +6,10 @@ type GuestListProps = {
   guests: Guest[];
   loading: boolean;
   error: string | null;
+  onRefresh: () => Promise<void>;
 };
 
-export function GuestList({ guests, loading, error }: GuestListProps) {
+export function GuestList({ guests, loading, error, onRefresh }: GuestListProps) {
   if (loading) {
     return <ListShell>Loading guests...</ListShell>;
   }
@@ -25,7 +26,7 @@ export function GuestList({ guests, loading, error }: GuestListProps) {
     <ListShell>
       <ul className="divide-y divide-[#f5d8b4]/70">
         {guests.map((guest) => (
-          <GuestRow key={guest.id} guest={guest} />
+          <GuestRow key={guest.id} guest={guest} onRefresh={onRefresh} />
         ))}
       </ul>
     </ListShell>

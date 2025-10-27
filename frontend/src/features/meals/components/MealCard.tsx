@@ -19,6 +19,7 @@ type MealCardProps = {
   onAddGuests: (mealId: string, guestIds: string[]) => Promise<void>;
   onLoadMenu: (mealId: string) => Promise<SuggestedMenuByCategory>;
   onOpenGuestModal: (guest: ModalGuest) => void;
+  onDeleteMeal: (mealId: string) => Promise<void>;
 };
 
 type GuestChecklistOption = GuestOption & { alreadyInvited: boolean };
@@ -35,12 +36,16 @@ export function MealCard({
   onAddGuests,
   onLoadMenu,
   onOpenGuestModal,
+  onDeleteMeal,
 }: MealCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
   const [addGuestsError, setAddGuestsError] = useState<string | null>(null);
   const [addingGuests, setAddingGuests] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingMeal, setIsDeletingMeal] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const guestChecklistOptions: GuestChecklistOption[] = useMemo(
     () =>
@@ -132,6 +137,23 @@ export function MealCard({
     });
   };
 
+  const handleDeleteMeal = async () => {
+    setIsDeletingMeal(true);
+    setDeleteError(null);
+    try {
+      await onDeleteMeal(meal.id);
+      setShowDeleteModal(false);
+    } catch (err: unknown) {
+      let message = "Failed to delete meal.";
+      if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      setDeleteError(message);
+    } finally {
+      setIsDeletingMeal(false);
+    }
+  };
+
   return (
     <li className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -142,15 +164,46 @@ export function MealCard({
         <div className="shrink-0 text-right text-xs uppercase tracking-[0.28em] text-[#a77044]">
           <div>{formatDisplayDate(meal.date)}</div>
           <div className="mt-2 flex flex-col items-end gap-1">
-            <button
-              type="button"
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.7rem] font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#d37655]/40 sm:text-xs ${showMenu ? "bg-[#d37655] text-white shadow-[0_12px_28px_-18px_rgba(211,118,85,0.85)]" : "border border-[#d37655]/40 bg-white/90 text-[#a15535] hover:-translate-y-0.5 hover:bg-[#fbe0d4]"}`}
-              onClick={handleToggleMenu}
-            >
-              <span className="font-bold tracking-[0.25em]">MENU</span>
-              <span className="tracking-normal">{showMenu ? "Hide suggestions" : "Show suggestions"}</span>
-              <span aria-hidden>{showMenu ? "▴" : "▾"}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.7rem] font-semibold transition focus:outline-none focus:ring-2 focus:ring-[#d37655]/40 sm:text-xs ${showMenu ? "bg-[#d37655] text-white shadow-[0_12px_28px_-18px_rgba(211,118,85,0.85)]" : "border border-[#d37655]/40 bg-white/90 text-[#a15535] hover:-translate-y-0.5 hover:bg-[#fbe0d4]"}`}
+                onClick={handleToggleMenu}
+              >
+                <span className="font-bold tracking-[0.25em]">MENU</span>
+                <span className="tracking-normal">{showMenu ? "Hide suggestions" : "Show suggestions"}</span>
+                <span aria-hidden>{showMenu ? "▴" : "▾"}</span>
+              </button>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d37655]/30 text-[#d37655] transition hover:bg-[#fbe0d4]"
+                onClick={() => {
+                  if (isDeletingMeal) {
+                    return;
+                  }
+                  setDeleteError(null);
+                  setShowDeleteModal(true);
+                }}
+                aria-label={showDeleteModal ? "Cancel delete" : "Delete meal"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6" />
+                  <path d="M19 6v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19V6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                </svg>
+              </button>
+            </div>
             <span className="text-[0.55rem] normal-case tracking-normal text-[#6f5440]">Based on guest rankings</span>
           </div>
         </div>
@@ -223,6 +276,109 @@ export function MealCard({
         onConfirm={handleConfirmGuests}
         onClose={closeInviteModal}
       />
+      {showDeleteModal ? (
+        <DeleteMealModal
+          mealName={meal.name}
+          onCancel={() => {
+            if (isDeletingMeal) {
+              return;
+            }
+            setShowDeleteModal(false);
+            setDeleteError(null);
+          }}
+          onConfirm={() => {
+            if (isDeletingMeal) {
+              return;
+            }
+            void handleDeleteMeal();
+          }}
+          isDeleting={isDeletingMeal}
+          error={deleteError}
+        />
+      ) : null}
     </li>
+  );
+}
+
+type DeleteMealModalProps = {
+  mealName: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  isDeleting: boolean;
+  error: string | null;
+};
+
+function DeleteMealModal({ mealName, onCancel, onConfirm, isDeleting, error }: DeleteMealModalProps) {
+  const canDismiss = !isDeleting;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#2b1c12]/40 px-3 py-6 sm:px-4 sm:py-8"
+      onClick={() => {
+        if (!canDismiss) {
+          return;
+        }
+        onCancel();
+      }}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl border border-white/70 bg-white/95 p-5 shadow-[0_35px_80px_-35px_rgba(167,112,68,0.6)] backdrop-blur-sm sm:rounded-3xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-[#a77044]">Delete meal</h3>
+            <button
+              type="button"
+              className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d37655] underline decoration-dotted disabled:opacity-60"
+              onClick={() => {
+                if (!canDismiss) {
+                  return;
+                }
+                onCancel();
+              }}
+              disabled={!canDismiss}
+            >
+              Close
+            </button>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-[#2b1c12]">Remove {mealName}?</p>
+            <p className="text-xs text-[#6f5440]">
+              This deletes the meal and guest assignments. This action cannot be undone.
+            </p>
+            {error ? <p className="text-xs text-red-500">{error}</p> : null}
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              className="rounded-full border border-[#d37655]/30 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#d37655] transition hover:bg-[#fbe0d4] disabled:opacity-60"
+              onClick={() => {
+                if (!canDismiss) {
+                  return;
+                }
+                onCancel();
+              }}
+              disabled={!canDismiss}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-full bg-[#d37655] px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-white transition hover:-translate-y-0.5 disabled:opacity-70"
+              onClick={() => {
+                if (isDeleting) {
+                  return;
+                }
+                onConfirm();
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

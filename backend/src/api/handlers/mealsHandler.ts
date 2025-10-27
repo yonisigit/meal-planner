@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { HttpError } from "../errors.js";
 import { authenticateUserId } from "../../auth.js";
-import { addGuestToMeal, addMeal, getDessertMealRankings, getMainMealRankings, getMealGuests, getMealsByUserId, getOtherMealRankings, getSideMealRankings, removeGuestFromMeal } from "../../db/queries/mealsQueries.js";
+import { addGuestToMeal, addMeal, deleteMeal, getDessertMealRankings, getMainMealRankings, getMealGuests, getMealsByUserId, getOtherMealRankings, getSideMealRankings, removeGuestFromMeal } from "../../db/queries/mealsQueries.js";
 
 
 export async function getMealsByUserHandler(req: Request, res: Response) {
@@ -111,4 +111,20 @@ export async function getMenuHandler(req: Request, res: Response) {
     dessert: dessertDishes.slice(0, 1),
     other: otherDishes.slice(0, 3)
   });
+}
+
+export async function deleteMealHandler(req: Request, res: Response) {
+  const userId = authenticateUserId(req);
+  if (!userId) {
+    throw new HttpError(401, "Unauthorized");
+  }
+
+  const mealId = req.params.mealId;
+  if (!mealId) {
+    throw new HttpError(400, "Missing meal information.");
+  }
+
+  await deleteMeal(mealId);
+
+  res.status(200).json({ message: "Meal deleted successfully." });
 }

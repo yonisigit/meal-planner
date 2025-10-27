@@ -17,3 +17,16 @@ export async function getDishesByUserId(userId: string){
   const dishes = await db.select().from(dishesTable).where(eq(dishesTable.userId, userId)).orderBy(dishesTable.name);
   return dishes;
 }
+
+export async function editDish(dishId: string, dishName: string, dishDescription: string, dishCategory: Dish["category"]){
+  const [updatedDish] = await db.update(dishesTable).set({
+    name: dishName,
+    description: dishDescription,
+    category: dishCategory
+  }).where(eq(dishesTable.id, dishId)).returning();
+  return updatedDish;
+}
+
+export async function deleteDish(dishId: string){
+  await db.delete(dishesTable).where(eq(dishesTable.id, dishId));
+}

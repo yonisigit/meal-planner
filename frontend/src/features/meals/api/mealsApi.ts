@@ -54,6 +54,10 @@ export async function createMeal(payload: { name: string; date: string; descript
   return response.data;
 }
 
+export async function deleteMeal(mealId: string): Promise<void> {
+  await api.delete(`/meals/${mealId}`);
+}
+
 export async function saveGuestDishRank(guestId: string, dishId: string, rank: number | null) {
   const response = await api.post(`/guests/${encodeURIComponent(guestId)}/dishes/${encodeURIComponent(dishId)}`, { rank });
   return response.data;

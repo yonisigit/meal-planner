@@ -71,7 +71,7 @@ const GuestsPage = () => {
             <AddGuestButton onAdded={refresh} />
           </div>
 
-          <GuestList guests={guests} loading={loading} error={error} />
+          <GuestList guests={guests} loading={loading} error={error} onRefresh={refresh} />
         </section>
       </div>
     </div>

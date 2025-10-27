@@ -33,3 +33,15 @@ export async function saveGuestDishRank(guestId: string, dishId: string, rank: n
   );
   return response.data;
 }
+
+export async function updateGuest(guestId: string, payload: { name: string }): Promise<Guest> {
+  const response: AxiosResponse<Guest> = await api.put(
+    `/guests/${encodeURIComponent(guestId)}`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function deleteGuest(guestId: string): Promise<void> {
+  await api.delete(`/guests/${encodeURIComponent(guestId)}`);
+}

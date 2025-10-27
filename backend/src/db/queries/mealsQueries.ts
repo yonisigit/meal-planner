@@ -116,3 +116,7 @@ export async function getOtherMealRankings(mealId: string) {
 
   return otherDishRankings;
 }
+
+export async function deleteMeal(mealId: string) {
+  await db.delete(mealsTable).where(eq(mealsTable.id, mealId));
+}

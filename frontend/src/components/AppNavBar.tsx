@@ -31,7 +31,7 @@ const AppNavBar = () => {
           onClick={() => navigate('/home')}
           className="text-xs font-semibold uppercase tracking-[0.35em] text-[#a77044] transition hover:text-[#2b1c12]"
         >
-          Meal planner
+          HostMate
         </button>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-[#6f5440] lg:flex">

@@ -85,7 +85,7 @@ const LoginPage = () => {
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 py-16 lg:flex-row lg:items-stretch lg:justify-between lg:px-12">
         <div className="mb-12 max-w-xl space-y-6 lg:mb-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">Meal planner</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-[#a77044]">HostMate</p>
           <h1 className="text-4xl font-semibold leading-tight tracking-tight text-[#2b1c12] sm:text-5xl">
             Sign in and start curating gatherings your guests will rave about.
           </h1>

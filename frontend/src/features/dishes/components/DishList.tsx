@@ -3,17 +3,19 @@ import type { Dish } from "../types";
 import { DISH_CATEGORY_LABELS } from "../types";
 import { groupDishesByCategory } from "../utils/groupDishesByCategory";
 import { ListShell } from "./ListShell";
+import { DishCard } from "./DishCard";
 
 type DishListProps = {
   dishes: Dish[];
   loading: boolean;
   error: string | null;
+  onRefresh: () => Promise<void>;
 };
 
 const formatCategoryLabel = (category: string) =>
   DISH_CATEGORY_LABELS[category as keyof typeof DISH_CATEGORY_LABELS] ?? category.replace(/^[a-z]/, (char) => char.toUpperCase());
 
-export function DishList({ dishes, loading, error }: DishListProps) {
+export function DishList({ dishes, loading, error, onRefresh }: DishListProps) {
   const { grouped, orderedCategories } = useMemo(() => groupDishesByCategory(dishes), [dishes]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(orderedCategories[0] ?? null);
 
@@ -94,21 +96,7 @@ export function DishList({ dishes, loading, error }: DishListProps) {
             </h3>
             <ul className="space-y-3">
               {visibleDishes.map((dish) => (
-                <li
-                  key={dish.id}
-                  className="rounded-2xl border border-[#f5d8b4]/70 bg-white/80 p-5 shadow-[0_20px_45px_-30px_rgba(167,112,68,0.55)] transition duration-150 hover:-translate-y-0.5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="text-base font-semibold text-[#2b1c12]">{dish.name}</div>
-                      {dish.description ? <div className="text-sm leading-relaxed text-[#6f5440]">{dish.description}</div> : null}
-                    </div>
-                    <div className="flex flex-col items-end gap-2 text-xs uppercase tracking-widest text-[#a77044]/90">
-                      {dish.created_at ? <span>Added {new Date(dish.created_at).toLocaleDateString()}</span> : null}
-                      {dish.updated_at ? <span>Updated {new Date(dish.updated_at).toLocaleDateString()}</span> : null}
-                    </div>
-                  </div>
-                </li>
+                <DishCard key={dish.id} dish={dish} onRefresh={onRefresh} />
               ))}
             </ul>
           </div>

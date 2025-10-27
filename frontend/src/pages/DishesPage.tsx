@@ -63,7 +63,7 @@ const DishesPage = () => {
             <AddDishButton onAdded={refreshDishes} />
           </div>
 
-          <DishList dishes={dishes} loading={loading} error={error} />
+          <DishList dishes={dishes} loading={loading} error={error} onRefresh={refreshDishes} />
         </section>
       </div>
     </div>

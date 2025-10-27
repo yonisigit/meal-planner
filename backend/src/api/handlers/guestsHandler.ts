@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { HttpError } from "../errors.js";
-import { addGuest, getDishForUser, getGuestByRankToken, getGuestDishes, getGuests, getGuestsByUserId, getGuestUser, rankDish } from "../../db/queries/guestQueries.js";
+import { addGuest, deleteGuest, getDishForUser, getGuestByRankToken, getGuestDishes, getGuests, getGuestsByUserId, getGuestUser, rankDish, updateGuest } from "../../db/queries/guestQueries.js";
 import { authenticateUserId } from "../../auth.js";
 import { getUserNameById } from "../../db/queries/userQueries.js";
 
@@ -135,3 +135,52 @@ export async function rankDishByRankTokenHandler(req: Request, res: Response) {
 
 
 
+export async function updateGuestHandler(req: Request, res: Response) {
+  const userId = authenticateUserId(req);
+  if (!userId) {
+    throw new HttpError(401, "Unauthorized");
+  }
+
+  const guestId = req.params.guestId;
+  const { name: newGuestName } = req.body;
+
+  if (!guestId || !newGuestName) {
+    throw new HttpError(400, "Missing guest information.");
+  }
+
+  const guest = await getGuestUser(guestId);
+  if (!guest) {
+    throw new HttpError(404, "Guest not found.");
+  }
+  if (guest.userId !== userId) {
+    throw new HttpError(403, "Forbidden");
+  }
+
+  const updatedGuest = await updateGuest(guestId, newGuestName);
+
+  res.status(200).json(updatedGuest);
+}
+
+export async function deleteGuestHandler(req: Request, res: Response) { 
+  const userId = authenticateUserId(req);
+  if (!userId) {
+    throw new HttpError(401, "Unauthorized");
+  }
+
+  const guestId = req.params.guestId;
+  if (!guestId) {
+    throw new HttpError(400, "Missing guest information.");
+  }
+
+  const guest = await getGuestUser(guestId);
+  if (!guest) {
+    throw new HttpError(404, "Guest not found.");
+  }
+  if (guest.userId !== userId) {
+    throw new HttpError(403, "Forbidden");
+  }
+
+  await deleteGuest(guestId);
+
+  res.status(204).send();
+}

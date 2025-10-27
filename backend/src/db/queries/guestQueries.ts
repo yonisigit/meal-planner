@@ -80,3 +80,13 @@ export async function getDishForUser(dishId: string, userId: string) {
 }
 
 
+export async function updateGuest(guestId: string, newGuestName: string) {
+  const [updatedGuest] = await db.update(guestsTable).set({
+    name: newGuestName,
+  }).where(eq(guestsTable.id, guestId)).returning();
+  return updatedGuest;
+}
+
+export async function deleteGuest(guestId: string) {
+  await db.delete(guestsTable).where(eq(guestsTable.id, guestId));
+}

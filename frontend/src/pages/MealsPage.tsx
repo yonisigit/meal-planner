@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/useAuth';
 import {
   addGuestsToMeal,
+  deleteMeal,
   fetchGuests,
   fetchMealGuests,
   fetchMeals,
@@ -181,6 +182,27 @@ const MealsPage = () => {
     return `${meals.length} curated meals ready for your guests.`;
   }, [meals.length]);
 
+  const handleDeleteMeal = useCallback(
+    async (mealId: string) => {
+      try {
+        await deleteMeal(mealId);
+        toast.success('Meal deleted');
+        await refreshMeals();
+      } catch (err: unknown) {
+        let message = 'Failed to delete meal.';
+        if (err && typeof err === 'object' && 'response' in err) {
+          const response = (err as { response?: { data?: { message?: string } } }).response;
+          message = response?.data?.message ?? message;
+        } else if (err instanceof Error && err.message) {
+          message = err.message;
+        }
+        toast.error(message);
+        throw new Error(message);
+      }
+    },
+    [refreshMeals],
+  );
+
   if (isInitializing) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fdf4e3] text-[#6f5440]">
@@ -226,6 +248,7 @@ const MealsPage = () => {
               menuLoading={menuLoading}
               menuError={menuError}
               onOpenGuestModal={(guest) => setModalGuest(guest)}
+              onDeleteMeal={handleDeleteMeal}
             />
           )}
           {modalGuest && (

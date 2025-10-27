@@ -17,6 +17,7 @@ type MealListProps = {
   menuLoading: Record<string, boolean>;
   menuError: Record<string, string | null>;
   onOpenGuestModal: (guest: ModalGuest) => void;
+  onDeleteMeal: (mealId: string) => Promise<void>;
 };
 
 export function MealList({
@@ -31,6 +32,7 @@ export function MealList({
   menuLoading,
   menuError,
   onOpenGuestModal,
+  onDeleteMeal,
 }: MealListProps) {
   if (!meals || meals.length === 0) {
     return (
@@ -60,6 +62,7 @@ export function MealList({
             menuLoading={menuLoading?.[meal.id] ?? false}
             menuError={menuError?.[meal.id] ?? null}
             onOpenGuestModal={onOpenGuestModal}
+            onDeleteMeal={onDeleteMeal}
           />
         ))}
       </ul>
