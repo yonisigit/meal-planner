@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import { jest } from "@jest/globals";
-import { HttpError } from "../../errors.js";
 
 type MealsHandlers = typeof import("../mealsHandler.js");
 
@@ -41,6 +40,7 @@ beforeEach(async () => {
     getDessertMealRankings: jest.fn(),
     getOtherMealRankings: jest.fn(),
     deleteMeal: jest.fn(),
+    editMeal: jest.fn(),
     removeGuestFromMeal: mockRemoveGuestFromMeal,
   }));
 
