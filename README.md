@@ -9,6 +9,14 @@
 
 Start planning your next gathering! [HostMate](https://hostmate.up.railway.app/)
 
+---
+
+## 🎥 Demo
+
+![HostMate demo](./assets/demo.gif)
+
+---
+
 ## 📖 Usage
 
 1. **Create an account**  
